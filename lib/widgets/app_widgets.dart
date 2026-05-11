@@ -23,8 +23,8 @@ class AppLogo extends StatelessWidget {
             ),
           ],
         ),
-        child: Image.network(
-          'https://raw.githubusercontent.com/AngelSPerez/PROYECTO-FINAL-FLUTTER/refs/heads/main/image.png',
+        child: Image.asset(
+          'assets/images/image.png',
           fit: BoxFit.cover,
           width: size,
           height: size,

@@ -27,9 +27,8 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
-  # ── Uncomment and add your assets when ready ─────────────────────────
-  # assets:
-  #   - assets/images/
+  assets:
+    - assets/images/
 
   # ── Uncomment if you add custom fonts ────────────────────────────────
   # fonts:

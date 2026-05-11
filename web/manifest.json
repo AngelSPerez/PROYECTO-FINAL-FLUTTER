@@ -1,6 +1,6 @@
 {
-    "name": "recipe_recive",
-    "short_name": "recipe_recive",
+    "name": "RecipeRecive",
+    "short_name": "RecipeRecive",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
