@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/recipe.dart';
+import '../l10n/strings.dart';
+import '../widgets/locale_aware.dart';
 
 class AdminRatingsScreen extends StatefulWidget {
   final List<Recipe> recipes;
@@ -10,7 +12,7 @@ class AdminRatingsScreen extends StatefulWidget {
   State<AdminRatingsScreen> createState() => _AdminRatingsScreenState();
 }
 
-class _AdminRatingsScreenState extends State<AdminRatingsScreen> {
+class _AdminRatingsScreenState extends State<AdminRatingsScreen> with LocaleAwareState {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
 
@@ -38,7 +40,7 @@ class _AdminRatingsScreenState extends State<AdminRatingsScreen> {
   void _deleteRating(int index) {
     setState(() => _ratings.removeAt(index));
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Calificación eliminada')),
+      SnackBar(content: Text(Str.ratingDeleted)),
     );
   }
 
@@ -62,7 +64,7 @@ class _AdminRatingsScreenState extends State<AdminRatingsScreen> {
       builder: (_) => StatefulBuilder(
         builder: (ctx, setDlg) => AlertDialog(
           title: Text(
-              editIndex != null ? 'Editar calificación' : 'Nueva calificación'),
+              editIndex != null ? Str.editRating : Str.newRating),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -72,7 +74,7 @@ class _AdminRatingsScreenState extends State<AdminRatingsScreen> {
                     .map((u) => DropdownMenuItem(value: u, child: Text(u)))
                     .toList(),
                 onChanged: (v) => setDlg(() => selectedUser = v!),
-                decoration: const InputDecoration(labelText: 'Usuario'),
+                decoration: InputDecoration(labelText: Str.user),
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<int>(
@@ -82,7 +84,7 @@ class _AdminRatingsScreenState extends State<AdminRatingsScreen> {
                       value: e.key, child: Text(e.value.title));
                 }).toList(),
                 onChanged: (v) => setDlg(() => selectedRecipe = v!),
-                decoration: const InputDecoration(labelText: 'Receta'),
+                decoration: InputDecoration(labelText: Str.recipe),
               ),
               const SizedBox(height: 12),
               Wrap(
@@ -106,10 +108,10 @@ class _AdminRatingsScreenState extends State<AdminRatingsScreen> {
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancelar')),
+                child: Text(Str.cancel)),
             ElevatedButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Guardar')),
+                child: Text(Str.save)),
           ],
         ),
       ),
@@ -137,9 +139,9 @@ class _AdminRatingsScreenState extends State<AdminRatingsScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF9C27B0),
         foregroundColor: Colors.white,
-        title: const Text('Calificaciones',
+        title: Text(Str.ratings,
             style:
-                TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
@@ -159,7 +161,7 @@ class _AdminRatingsScreenState extends State<AdminRatingsScreen> {
               onChanged: (v) => setState(() => _query = v),
               style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
               decoration: InputDecoration(
-                hintText: 'Buscar por usuario o receta...',
+                hintText: Str.searchUserOrRecipe,
                 filled: true,
                 fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                 isDense: true,
@@ -181,7 +183,7 @@ class _AdminRatingsScreenState extends State<AdminRatingsScreen> {
                 children: [
                   Icon(Icons.star_border, size: 64, color: Theme.of(context).colorScheme.outline),
                   const SizedBox(height: 12),
-                  Text('No ratings yet',
+                  Text(Str.noRatingsYet,
                       style: TextStyle(color: Theme.of(context).colorScheme.outline, fontSize: 16)),
                 ],
               ),
@@ -261,7 +263,7 @@ class _AdminRatingsScreenState extends State<AdminRatingsScreen> {
                         ),
                         const SizedBox(height: 8),
                         if (recipe != null)
-                          Text(recipe.title,
+                          Text(Str.recipeTitle(recipe.title),
                               style: const TextStyle(
                                 fontWeight: FontWeight.w600,
                                 fontSize: 13,

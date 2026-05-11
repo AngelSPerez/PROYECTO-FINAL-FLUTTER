@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'l10n/app_locale.dart';
+import 'services/preferences_service.dart';
 import 'screens/splash_screen.dart';
 
 class AppTheme {
@@ -6,7 +8,11 @@ class AppTheme {
   static final ValueNotifier<ThemeMode> mode = ValueNotifier(ThemeMode.light);
 }
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await PreferencesService.init();
+  AppLocale.language.value = PreferencesService.getLanguage();
+  AppTheme.mode.value = PreferencesService.getThemeMode();
   runApp(const RecipeReciveApp());
 }
 
@@ -20,20 +26,28 @@ class RecipeReciveApp extends StatefulWidget {
 class _RecipeReciveAppState extends State<RecipeReciveApp> {
   late ThemeMode _themeMode;
   late final VoidCallback _themeListener;
+  late final VoidCallback _langListener;
 
   @override
   void initState() {
     super.initState();
     _themeMode = AppTheme.mode.value;
     _themeListener = () {
+      PreferencesService.setThemeMode(AppTheme.mode.value);
       if (mounted) setState(() => _themeMode = AppTheme.mode.value);
     };
+    _langListener = () {
+      PreferencesService.setLanguage(AppLocale.language.value);
+      if (mounted) setState(() {});
+    };
     AppTheme.mode.addListener(_themeListener);
+    AppLocale.language.addListener(_langListener);
   }
 
   @override
   void dispose() {
     AppTheme.mode.removeListener(_themeListener);
+    AppLocale.language.removeListener(_langListener);
     super.dispose();
   }
 

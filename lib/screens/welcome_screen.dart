@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import '../widgets/app_widgets.dart';
+import '../l10n/app_locale.dart';
+import '../l10n/strings.dart';
 import 'register_screen.dart';
 import 'login_screen.dart';
 
-/// Welcome screen shown after tapping "Usuario" on the splash screen.
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return ValueListenableBuilder<String>(
+      valueListenable: AppLocale.language,
+      builder: (_, __, ___) => Scaffold(
       appBar: AppBar(
         elevation: 0,
         scrolledUnderElevation: 0,
@@ -31,7 +34,7 @@ class WelcomeScreen extends StatelessWidget {
                       children: [
                         const SizedBox(height: 16),
                         Text(
-                          'Welcome to\nRecipeRecive',
+                          Str.welcomeTitle,
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 32,
@@ -43,7 +46,6 @@ class WelcomeScreen extends StatelessWidget {
                         const Spacer(),
                         const AppLogo(size: 165),
                         const Spacer(),
-                        // Get Started button
                         SizedBox(
                           width: double.infinity,
                           height: 54,
@@ -64,9 +66,9 @@ class WelcomeScreen extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(30),
                               ),
                             ),
-                            child: const Text(
-                              'Get Started',
-                              style: TextStyle(
+                            child: Text(
+                              Str.getStarted,
+                              style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -74,7 +76,6 @@ class WelcomeScreen extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        // Log In button
                         SizedBox(
                           width: double.infinity,
                           height: 54,
@@ -95,9 +96,9 @@ class WelcomeScreen extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(30),
                               ),
                             ),
-                            child: const Text(
-                              'Log In',
-                              style: TextStyle(
+                            child: Text(
+                              Str.logIn,
+                              style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -113,6 +114,7 @@ class WelcomeScreen extends StatelessWidget {
             );
           },
         ),
+      ),
       ),
     );
   }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/recipe.dart';
+import '../l10n/strings.dart';
+import '../widgets/locale_aware.dart';
 
 class AdminSavedScreen extends StatefulWidget {
   final List<Recipe> recipes;
@@ -10,7 +12,7 @@ class AdminSavedScreen extends StatefulWidget {
   State<AdminSavedScreen> createState() => _AdminSavedScreenState();
 }
 
-class _AdminSavedScreenState extends State<AdminSavedScreen> {
+class _AdminSavedScreenState extends State<AdminSavedScreen> with LocaleAwareState {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
 
@@ -41,7 +43,7 @@ class _AdminSavedScreenState extends State<AdminSavedScreen> {
   void _deleteEntry(Map<String, dynamic> entry) {
     setState(() => _entries.remove(entry));
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Entrada eliminada')),
+      SnackBar(content: Text(Str.entryDeleted)),
     );
   }
 
@@ -55,13 +57,13 @@ class _AdminSavedScreenState extends State<AdminSavedScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Opciones',
-                style: TextStyle(
+            Text(Str.options,
+                style: const TextStyle(
                     fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 12),
             ListTile(
               leading: const Icon(Icons.edit_outlined),
-              title: const Text('Editar entrada'),
+              title: Text(Str.editEntry),
               onTap: () {
                 Navigator.pop(context);
                 _showEntryForm(existing: entry);
@@ -69,8 +71,8 @@ class _AdminSavedScreenState extends State<AdminSavedScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.delete_outline, color: Colors.redAccent),
-              title: const Text('Eliminar entrada',
-                  style: TextStyle(color: Colors.redAccent)),
+              title: Text(Str.deleteEntry,
+                  style: const TextStyle(color: Colors.redAccent)),
               onTap: () {
                 Navigator.pop(context);
                 _deleteEntry(entry);
@@ -90,7 +92,7 @@ class _AdminSavedScreenState extends State<AdminSavedScreen> {
       context: context,
       builder: (_) => StatefulBuilder(
         builder: (ctx, setDlg) => AlertDialog(
-          title: Text(existing != null ? 'Editar entrada' : 'Agregar guardado'),
+          title: Text(existing != null ? Str.editEntry : Str.newEntry),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -100,7 +102,7 @@ class _AdminSavedScreenState extends State<AdminSavedScreen> {
                     .map((u) => DropdownMenuItem(value: u, child: Text(u)))
                     .toList(),
                 onChanged: (v) => setDlg(() => selectedUser = v!),
-                decoration: const InputDecoration(labelText: 'Usuario'),
+                decoration: InputDecoration(labelText: Str.user),
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<int>(
@@ -110,17 +112,17 @@ class _AdminSavedScreenState extends State<AdminSavedScreen> {
                       value: e.key, child: Text(e.value.title));
                 }).toList(),
                 onChanged: (v) => setDlg(() => selectedRecipe = v!),
-                decoration: const InputDecoration(labelText: 'Receta'),
+                decoration: InputDecoration(labelText: Str.recipe),
               ),
             ],
           ),
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancelar')),
+                child: Text(Str.cancel)),
             ElevatedButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Guardar')),
+                child: Text(Str.save)),
           ],
         ),
       ),
@@ -148,9 +150,9 @@ class _AdminSavedScreenState extends State<AdminSavedScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF9C27B0),
         foregroundColor: Colors.white,
-        title: const Text('Guardados',
+        title: Text(Str.savedPlural,
             style:
-                TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
@@ -170,7 +172,7 @@ class _AdminSavedScreenState extends State<AdminSavedScreen> {
               onChanged: (v) => setState(() => _query = v),
               style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
               decoration: InputDecoration(
-                hintText: 'Buscar por usuario o receta...',
+                hintText: Str.searchUserOrRecipe,
                 filled: true,
                 fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                 isDense: true,
@@ -187,7 +189,7 @@ class _AdminSavedScreenState extends State<AdminSavedScreen> {
       ),
       body: _filtered.isEmpty
           ? Center(
-              child: Text('No hay entradas',
+              child: Text(Str.noEntries,
                   style: TextStyle(color: Theme.of(context).colorScheme.outline, fontSize: 16)))
           : ListView.separated(
               padding: const EdgeInsets.all(12),
@@ -204,7 +206,7 @@ class _AdminSavedScreenState extends State<AdminSavedScreen> {
                     child: Icon(Icons.bookmark,
                         color: Colors.white, size: 18),
                   ),
-                  title: Text(recipe?.title ?? '???',
+                  title: Text(Str.recipeTitle(recipe?.title ?? ''),
                       style: const TextStyle(fontWeight: FontWeight.bold)),
                   subtitle: Text('${entry['user']} — ${entry['savedAt']}',
                       style: const TextStyle(fontSize: 12)),

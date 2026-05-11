@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../l10n/strings.dart';
+import '../widgets/locale_aware.dart';
 
 class AdminUsersScreen extends StatefulWidget {
   const AdminUsersScreen({super.key});
@@ -7,7 +9,7 @@ class AdminUsersScreen extends StatefulWidget {
   State<AdminUsersScreen> createState() => _AdminUsersScreenState();
 }
 
-class _AdminUsersScreenState extends State<AdminUsersScreen> {
+class _AdminUsersScreenState extends State<AdminUsersScreen> with LocaleAwareState {
   final TextEditingController _searchController = TextEditingController();
 
   final List<Map<String, dynamic>> _users = [
@@ -54,38 +56,38 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
       context: context,
       builder: (_) => StatefulBuilder(
         builder: (ctx, setDlg) => AlertDialog(
-          title: Text(existing != null ? 'Editar usuario' : 'Nuevo usuario'),
+          title: Text(existing != null ? Str.editUser : Str.newUser),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                   controller: nameCtrl,
-                  decoration: const InputDecoration(labelText: 'Nombre')),
+                  decoration: InputDecoration(labelText: Str.name)),
               TextField(
                   controller: emailCtrl,
-                  decoration: const InputDecoration(labelText: 'Email')),
+                  decoration: InputDecoration(labelText: Str.email)),
               DropdownButtonFormField<String>(
                 initialValue: role,
-                items: const [
-                  DropdownMenuItem(value: 'user', child: Text('Usuario')),
-                  DropdownMenuItem(value: 'admin', child: Text('Admin')),
+                items: [
+                  DropdownMenuItem(value: 'user', child: Text(Str.user)),
+                  DropdownMenuItem(value: 'admin', child: Text(Str.admin)),
                 ],
                 onChanged: (v) => setDlg(() => role = v ?? 'user'),
-                decoration: const InputDecoration(labelText: 'Rol'),
+                decoration: InputDecoration(labelText: Str.role),
               ),
             ],
           ),
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancelar')),
+                child: Text(Str.cancel)),
             ElevatedButton(
                 onPressed: () => Navigator.pop(ctx, {
                   'name': nameCtrl.text.trim(),
                   'email': emailCtrl.text.trim(),
                   'role': role,
                 }),
-                child: const Text('Guardar')),
+                child: Text(Str.save)),
           ],
         ),
       ),
@@ -114,7 +116,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
   void _deleteUser(Map<String, dynamic> user) {
     setState(() => _users.remove(user));
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Usuario "${user['name']}" eliminado')),
+      SnackBar(content: Text(Str.deletedUser(user['name']))),
     );
   }
 
@@ -134,7 +136,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
             const SizedBox(height: 12),
             ListTile(
               leading: const Icon(Icons.edit_outlined),
-              title: const Text('Editar usuario'),
+              title: Text(Str.editUser),
               onTap: () {
                 Navigator.pop(context);
                 _showUserForm(existing: user);
@@ -143,8 +145,8 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
             ListTile(
               leading: const Icon(Icons.admin_panel_settings),
               title: Text(user['role'] == 'admin'
-                  ? 'Quitar rol admin'
-                  : 'Hacer administrador'),
+                  ? Str.removeAdmin
+                  : Str.makeAdmin),
               onTap: () {
                 Navigator.pop(context);
                 setState(() {
@@ -155,8 +157,8 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
             ListTile(
               leading:
                   const Icon(Icons.delete_outline, color: Colors.redAccent),
-              title: const Text('Eliminar usuario',
-                  style: TextStyle(color: Colors.redAccent)),
+              title: Text(Str.deleteUser,
+                  style: const TextStyle(color: Colors.redAccent)),
               onTap: () {
                 Navigator.pop(context);
                 _deleteUser(user);
@@ -174,9 +176,9 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF9C27B0),
         foregroundColor: Colors.white,
-        title: const Text('Usuarios',
+        title: Text(Str.users,
             style:
-                TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
@@ -196,7 +198,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
               onChanged: (v) => setState(() => _query = v),
               style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
               decoration: InputDecoration(
-                hintText: 'Buscar usuario...',
+                hintText: Str.searchUser,
                 filled: true,
                 fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                 isDense: true,
@@ -213,7 +215,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
       ),
       body: _filtered.isEmpty
           ? Center(
-              child: Text('No users found',
+              child: Text(Str.noUsersFound,
                   style: TextStyle(color: Theme.of(context).colorScheme.outline, fontSize: 16)))
           : ListView.separated(
               padding: const EdgeInsets.all(12),
@@ -246,8 +248,8 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                             color: const Color(0xFF9C27B0),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Text('Admin',
-                              style: TextStyle(
+                          child: Text(Str.admin,
+                              style: const TextStyle(
                                   color: Colors.white, fontSize: 10)),
                         ),
                       ],

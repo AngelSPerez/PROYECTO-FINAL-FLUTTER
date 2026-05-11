@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/recipe.dart';
 import '../widgets/app_widgets.dart';
+import '../l10n/strings.dart';
+import '../widgets/locale_aware.dart';
 import 'user_profile_screen.dart';
 
 class RecipeDetailScreen extends StatefulWidget {
@@ -17,13 +19,12 @@ class RecipeDetailScreen extends StatefulWidget {
   State<RecipeDetailScreen> createState() => _RecipeDetailScreenState();
 }
 
-class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
+class _RecipeDetailScreenState extends State<RecipeDetailScreen> with LocaleAwareState {
   late Recipe _recipe;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   List<Recipe> _suggestions = [];
 
-  // Comment form
   final TextEditingController _commentController = TextEditingController();
   double _userRating = 0;
   final List<Map<String, dynamic>> _comments = [
@@ -38,7 +39,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   @override
   void initState() {
     super.initState();
-    // Clone recipe so local mutations (like/save) don't affect the list
     _recipe = Recipe(
       id: widget.recipe.id,
       title: widget.recipe.title,
@@ -48,7 +48,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
       ingredients: widget.recipe.ingredients,
       steps: widget.recipe.steps,
       rating: widget.recipe.rating,
-      isLiked: false,   // always start cleared
+      isLiked: false,
       isSaved: false,
       imageUrl: widget.recipe.imageUrl,
     );
@@ -93,9 +93,9 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
           if (_commentController.text.trim().isEmpty) return;
           setState(() {
             _comments.insert(0, {
-              'user': 'Tú',
+              'user': Str.you,
               'text': _commentController.text.trim(),
-              'time': 'Ahora',
+              'time': Str.now,
               'rating': _userRating,
             });
             _commentController.clear();
@@ -113,26 +113,26 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => const Padding(
-        padding: EdgeInsets.all(24),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Compartir receta',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              Str.shareRecipe,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _ShareOption(icon: Icons.message, label: 'Mensaje'),
-                _ShareOption(icon: Icons.email_outlined, label: 'Email'),
-                _ShareOption(icon: Icons.copy, label: 'Copiar'),
-                _ShareOption(icon: Icons.more_horiz, label: 'Más'),
+                _ShareOption(icon: Icons.message, label: Str.message),
+                _ShareOption(icon: Icons.email_outlined, label: Str.email),
+                _ShareOption(icon: Icons.copy, label: Str.copy),
+                _ShareOption(icon: Icons.more_horiz, label: Str.more),
               ],
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
           ],
         ),
       ),
@@ -151,9 +151,9 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Lista de compras',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Text(
+              Str.shoppingList,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             ..._recipe.ingredients.map(
@@ -163,7 +163,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                   children: [
                     Icon(Icons.shopping_cart_outlined, size: 18, color: Theme.of(context).colorScheme.outline),
                     const SizedBox(width: 8),
-                    Text(ing),
+                    Text(Str.ingredient(ing)),
                   ],
                 ),
               ),
@@ -177,7 +177,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                   foregroundColor: Colors.white,
                 ),
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Agregar todo'),
+                child: Text(Str.addAll),
               ),
             ),
           ],
@@ -221,14 +221,13 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
       ),
       body: Column(
         children: [
-          // Fixed search bar
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
             child: TextField(
               controller: _searchController,
               onChanged: _onSearchChanged,
               decoration: InputDecoration(
-                hintText: 'Search...',
+                hintText: Str.search,
                 hintStyle: TextStyle(color: scheme.onSurface.withValues(alpha: 0.38)),
                 filled: true,
                 fillColor: scheme.surfaceContainerHighest,
@@ -242,7 +241,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
             ),
           ),
 
-          // Content with overlay suggestions
           Expanded(
             child: Stack(
               children: [
@@ -250,7 +248,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Recipe image with bookmark badge
                       Stack(
                         children: [
                           _recipe.imageUrl != null
@@ -290,7 +287,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                         ],
                       ),
 
-                      // Back + title
                       Padding(
                         padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
                         child: Row(
@@ -301,7 +297,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              _recipe.title,
+                              Str.recipeTitle(_recipe.title),
                               style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
@@ -311,14 +307,12 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                         ),
                       ),
 
-                      // Times
-                      _TimeRow(label: 'Preparation:', value: _recipe.prepTime),
-                      _TimeRow(label: 'Cooking:', value: _recipe.cookTime),
-                      _TimeRow(label: 'Total:', value: _recipe.totalTime),
+                      _TimeRow(label: Str.preparation, value: _recipe.prepTime),
+                      _TimeRow(label: Str.cooking, value: _recipe.cookTime),
+                      _TimeRow(label: Str.total, value: _recipe.totalTime),
 
                       const SizedBox(height: 12),
 
-                      // Ingredients + action buttons
                       Container(
                         margin: const EdgeInsets.symmetric(horizontal: 12),
                         padding: const EdgeInsets.all(14),
@@ -331,9 +325,9 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                           children: [
                             Row(
                               children: [
-                                const Text(
-                                  'Ingredients',
-                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                Text(
+                                  Str.ingredients,
+                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                                 ),
                                 const Spacer(),
                                 _ActionButton(icon: Icons.share, onTap: _showShareSheet),
@@ -352,7 +346,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                                         Icon(Icons.circle,
                                             size: 6, color: scheme.onSurface.withValues(alpha: 0.6)),
                                         const SizedBox(width: 6),
-                                        Text(ing),
+                                        Text(Str.ingredient(ing)),
                                       ],
                                     ),
                                   ),
@@ -375,15 +369,14 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
 
                       const SizedBox(height: 16),
 
-                      // Steps
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              'Steps',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            Text(
+                              Str.steps,
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                             ),
                             const SizedBox(height: 8),
                             ..._recipe.steps.asMap().entries.map(
@@ -410,7 +403,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                                           ),
                                         ),
                                         const SizedBox(width: 8),
-                                        Expanded(child: Text(e.value)),
+                                        Expanded(child: Text(Str.step(e.value))),
                                       ],
                                     ),
                                   ),
@@ -419,7 +412,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                         ),
                       ),
 
-                      // Like button at bottom
                       Padding(
                         padding: const EdgeInsets.all(12),
                         child: Row(
@@ -441,7 +433,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              _recipe.isLiked ? 'Te gusta' : 'Me gusta',
+                              _recipe.isLiked ? Str.teGusta : Str.meGusta,
                               style: TextStyle(
                                 color: _recipe.isLiked ? Colors.red : scheme.outline,
                                 fontWeight: FontWeight.w500,
@@ -495,7 +487,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                             child: Padding(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 16, vertical: 10),
-                              child: Text(r.title,
+                              child: Text(Str.recipeTitle(r.title),
                                   style: const TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w500)),
@@ -514,7 +506,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   }
 }
 
-// ── Time row ────────────────────────────────────────────────────────────────
 class _TimeRow extends StatelessWidget {
   final String label;
   final String value;
@@ -536,7 +527,6 @@ class _TimeRow extends StatelessWidget {
   }
 }
 
-// ── Action button (share / comment / cart) ──────────────────────────────────
 class _ActionButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
@@ -565,7 +555,6 @@ class _ActionButton extends StatelessWidget {
   }
 }
 
-// ── Share option chip ────────────────────────────────────────────────────────
 class _ShareOption extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -591,7 +580,6 @@ class _ShareOption extends StatelessWidget {
   }
 }
 
-// ── Comment bottom sheet ─────────────────────────────────────────────────────
 class _CommentSheet extends StatefulWidget {
   final List<Map<String, dynamic>> comments;
   final TextEditingController controller;
@@ -632,13 +620,12 @@ class _CommentSheetState extends State<_CommentSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Comentarios',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Text(
+              Str.comments,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
 
-            // Existing comments
             ...widget.comments.map(
               (c) => Container(
                 margin: const EdgeInsets.only(bottom: 8),
@@ -674,7 +661,6 @@ class _CommentSheetState extends State<_CommentSheet> {
               ),
             ),
 
-            // Star rating
             Row(
               children: List.generate(5, (i) {
                 return GestureDetector(
@@ -692,14 +678,13 @@ class _CommentSheetState extends State<_CommentSheet> {
             ),
             const SizedBox(height: 8),
 
-            // Text input
             Row(
               children: [
                 Expanded(
                   child: TextField(
                     controller: widget.controller,
                     decoration: InputDecoration(
-                      hintText: 'Escribe un comentario...',
+                      hintText: Str.writeComment,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -718,7 +703,7 @@ class _CommentSheetState extends State<_CommentSheet> {
                         borderRadius: BorderRadius.circular(10)),
                   ),
                   onPressed: widget.onSubmit,
-                  child: const Text('Enviar'),
+                  child: Text(Str.send),
                 ),
               ],
             ),

@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
+import '../l10n/strings.dart';
+import '../widgets/locale_aware.dart';
 import 'recipe_list_screen.dart';
 
-/// Registration screen.
-/// TODO: Wire up to Firebase Auth (createUserWithEmailAndPassword) and
-///       save the user profile to Firestore.
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
@@ -11,7 +10,7 @@ class RegisterScreen extends StatefulWidget {
   State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
+class _RegisterScreenState extends State<RegisterScreen> with LocaleAwareState {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -31,8 +30,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
 
-    // TODO: Replace with Firebase Auth registration
-    await Future.delayed(const Duration(milliseconds: 500)); // Simulated delay
+    await Future.delayed(const Duration(milliseconds: 500));
 
     if (!mounted) return;
     setState(() => _isLoading = false);
@@ -63,7 +61,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 8),
-                // Avatar placeholder
                 Center(
                   child: Container(
                     width: 120,
@@ -84,20 +81,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 32),
 
-                // Name
-                const _FieldLabel(label: 'Name:'),
+                _FieldLabel(label: Str.nameLabel),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _nameController,
                   textInputAction: TextInputAction.next,
                   decoration: _inputDecoration(hint: 'Angel Salinas Pérez 6J', context: context),
                   validator: (v) =>
-                      (v == null || v.trim().isEmpty) ? 'Please enter your name' : null,
+                      (v == null || v.trim().isEmpty) ? Str.enterName : null,
                 ),
                 const SizedBox(height: 20),
 
-                // E-mail
-                const _FieldLabel(label: 'E-mail:'),
+                _FieldLabel(label: Str.emailLabel),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _emailController,
@@ -105,15 +100,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   textInputAction: TextInputAction.next,
                   decoration: _inputDecoration(hint: 'angel@gmail.com', context: context),
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'Please enter your email';
-                    if (!v.contains('@')) return 'Enter a valid email';
+                    if (v == null || v.trim().isEmpty) return Str.enterEmail;
+                    if (!v.contains('@')) return Str.validEmail;
                     return null;
                   },
                 ),
                 const SizedBox(height: 20),
 
-                // Password
-                const _FieldLabel(label: 'Password:'),
+                _FieldLabel(label: Str.passwordLabel),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _passwordController,
@@ -131,14 +125,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                   ),
                   validator: (v) {
-                    if (v == null || v.isEmpty) return 'Please enter a password';
-                    if (v.length < 6) return 'Password must be at least 6 characters';
+                    if (v == null || v.isEmpty) return Str.enterPassword;
+                    if (v.length < 6) return Str.passwordMinLength;
                     return null;
                   },
                 ),
                 const SizedBox(height: 40),
 
-                // Register button
                 SizedBox(
                   width: double.infinity,
                   height: 54,
@@ -161,9 +154,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               strokeWidth: 2.5,
                             ),
                           )
-                        : const Text(
-                            'Register',
-                            style: TextStyle(
+                        : Text(
+                            Str.register,
+                            style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                             ),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/recipe.dart';
+import '../l10n/strings.dart';
+import '../widgets/locale_aware.dart';
 import 'admin_recipes_screen.dart';
 import 'admin_users_screen.dart';
 import 'admin_comments_screen.dart';
@@ -19,7 +21,7 @@ class AdminPanelScreen extends StatefulWidget {
   State<AdminPanelScreen> createState() => _AdminPanelScreenState();
 }
 
-class _AdminPanelScreenState extends State<AdminPanelScreen> {
+class _AdminPanelScreenState extends State<AdminPanelScreen> with LocaleAwareState {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -44,10 +46,10 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
               ),
             ),
             const SizedBox(width: 12),
-            const Flexible(
+            Flexible(
               child: Text(
-                'Panel de administrador',
-                style: TextStyle(
+                Str.adminPanel,
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 17,
                   fontWeight: FontWeight.bold,
@@ -72,7 +74,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                     size: size,
                     child: _AdminCard(
                       content: const _RecipeBookIcon(),
-                      label: 'Recetas',
+                      label: Str.recipePlural,
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -91,7 +93,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                         size: 64,
                         color: Theme.of(context).colorScheme.onSurface,
                       ),
-                      label: 'Usuarios',
+                      label: Str.users,
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -108,7 +110,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                         size: 64,
                         color: Theme.of(context).colorScheme.onSurface,
                       ),
-                      label: 'Comentarios',
+                      label: Str.comments,
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -125,7 +127,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                         size: 64,
                         color: Colors.amber,
                       ),
-                      label: 'Calificaciones',
+                      label: Str.ratings,
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -144,7 +146,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                         size: 64,
                         color: Theme.of(context).colorScheme.onSurface,
                       ),
-                      label: 'Guardados',
+                      label: Str.savedPlural,
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -163,7 +165,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                         size: 64,
                         color: Colors.redAccent,
                       ),
-                      label: 'Gustados',
+                      label: Str.liked,
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(

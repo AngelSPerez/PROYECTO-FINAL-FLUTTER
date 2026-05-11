@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/recipe.dart';
 import '../widgets/app_widgets.dart';
+import '../l10n/strings.dart';
+import '../widgets/locale_aware.dart';
 
 class AdminRecipesScreen extends StatefulWidget {
   final List<Recipe> recipes;
@@ -11,7 +13,7 @@ class AdminRecipesScreen extends StatefulWidget {
   State<AdminRecipesScreen> createState() => _AdminRecipesScreenState();
 }
 
-class _AdminRecipesScreenState extends State<AdminRecipesScreen> {
+class _AdminRecipesScreenState extends State<AdminRecipesScreen> with LocaleAwareState {
   late List<Recipe> _recipes;
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
@@ -29,7 +31,7 @@ class _AdminRecipesScreenState extends State<AdminRecipesScreen> {
   void _deleteRecipe(Recipe recipe) {
     setState(() => _recipes.remove(recipe));
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('"${recipe.title}" eliminada')),
+      SnackBar(content: Text(Str.deletedRecipe(recipe.title))),
     );
   }
 
@@ -52,47 +54,47 @@ class _AdminRecipesScreenState extends State<AdminRecipesScreen> {
     final saved = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text(existing != null ? 'Editar receta' : 'Nueva receta'),
+        title: Text(existing != null ? Str.editRecipe : Str.newRecipe),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                   controller: titleCtrl,
-                  decoration: const InputDecoration(labelText: 'Título')),
+                  decoration: InputDecoration(labelText: Str.title)),
               TextField(
                   controller: prepCtrl,
-                  decoration: const InputDecoration(labelText: 'Prep time')),
+                  decoration: InputDecoration(labelText: Str.prepTime)),
               TextField(
                   controller: cookCtrl,
-                  decoration: const InputDecoration(labelText: 'Cook time')),
+                  decoration: InputDecoration(labelText: Str.cookTime)),
               TextField(
                   controller: totalCtrl,
-                  decoration: const InputDecoration(labelText: 'Total time')),
+                  decoration: InputDecoration(labelText: Str.totalTime)),
               TextField(
                   controller: ingCtrl,
-                  decoration: const InputDecoration(
-                      labelText: 'Ingredientes (separados por coma)')),
+                  decoration: InputDecoration(
+                      labelText: Str.ingredientsComma)),
               TextField(
                   controller: stepsCtrl,
                   maxLines: 3,
-                  decoration: const InputDecoration(
-                      labelText: 'Pasos (uno por línea)')),
+                  decoration: InputDecoration(
+                      labelText: Str.stepsOnePerLine)),
               TextField(
                   controller: ratingCtrl,
                   keyboardType: TextInputType.number,
                   decoration:
-                      const InputDecoration(labelText: 'Calificación')),
+                      InputDecoration(labelText: Str.rating)),
             ],
           ),
         ),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancelar')),
+              child: Text(Str.cancel)),
           ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Guardar')),
+              child: Text(Str.save)),
         ],
       ),
     );
@@ -139,13 +141,13 @@ class _AdminRecipesScreenState extends State<AdminRecipesScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(recipe.title,
+            Text(Str.recipeTitle(recipe.title),
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 12),
             ListTile(
               leading: const Icon(Icons.edit_outlined),
-              title: const Text('Editar receta'),
+              title: Text(Str.editRecipe),
               onTap: () {
                 Navigator.pop(context);
                 _showRecipeForm(existing: recipe);
@@ -153,8 +155,8 @@ class _AdminRecipesScreenState extends State<AdminRecipesScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.delete_outline, color: Colors.redAccent),
-              title: const Text('Eliminar receta',
-                  style: TextStyle(color: Colors.redAccent)),
+              title: Text(Str.deleteRecipe,
+                  style: const TextStyle(color: Colors.redAccent)),
               onTap: () {
                 Navigator.pop(context);
                 _deleteRecipe(recipe);
@@ -172,9 +174,9 @@ class _AdminRecipesScreenState extends State<AdminRecipesScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF9C27B0),
         foregroundColor: Colors.white,
-        title: const Text('Recetas',
+        title: Text(Str.recipePlural,
             style:
-                TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
@@ -194,7 +196,7 @@ class _AdminRecipesScreenState extends State<AdminRecipesScreen> {
               onChanged: (v) => setState(() => _query = v),
               style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
               decoration: InputDecoration(
-                hintText: 'Buscar receta...',
+                hintText: Str.searchRecipe,
                 filled: true,
                 fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                 isDense: true,
@@ -211,7 +213,7 @@ class _AdminRecipesScreenState extends State<AdminRecipesScreen> {
       ),
       body: _filtered.isEmpty
           ? Center(
-              child: Text('No recipes found',
+              child: Text(Str.noRecipesFound,
                   style: TextStyle(color: Theme.of(context).colorScheme.outline, fontSize: 16)))
           : ListView.separated(
               padding: const EdgeInsets.all(12),
@@ -237,7 +239,7 @@ class _AdminRecipesScreenState extends State<AdminRecipesScreen> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                   ),
-                  title: Text(recipe.title,
+                  title: Text(Str.recipeTitle(recipe.title),
                       style: const TextStyle(fontWeight: FontWeight.bold)),
                   subtitle: Row(
                     children: [

@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_locale.dart';
+import '../l10n/strings.dart';
 import 'splash_screen.dart';
 import 'configuration_screen.dart';
 
-/// User profile screen.
-/// TODO: Load real user data from Firebase Auth / Firestore.
 class UserProfileScreen extends StatelessWidget {
   const UserProfileScreen({super.key});
 
-  // TODO: Replace with actual logged-in user name from Firebase Auth.
   static const String _userName = 'Angel Salinas';
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return ValueListenableBuilder<String>(
+      valueListenable: AppLocale.language,
+      builder: (_, __, ___) => Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
@@ -46,7 +47,6 @@ class UserProfileScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 14),
 
-                // Name — TODO: replace with Firebase Auth displayName
                 Text(
                   _userName,
                   style: TextStyle(
@@ -58,40 +58,31 @@ class UserProfileScreen extends StatelessWidget {
             const SizedBox(height: 4),
             const Divider(),
 
-            // Menu items
             _ProfileItem(
               icon: Icons.bookmark_border,
-              label: 'Saved',
-              onTap: () {
-                // TODO: Navigate to saved recipes screen
-              },
+              label: Str.saved,
+              onTap: () {},
             ),
             _ProfileItem(
               icon: Icons.favorite,
               iconColor: Colors.red,
-              label: 'Liked',
-              onTap: () {
-                // TODO: Navigate to liked recipes screen
-              },
+              label: Str.liked,
+              onTap: () {},
             ),
             _ProfileItem(
               icon: Icons.chat_bubble_outline,
-              label: 'Commented',
-              onTap: () {
-                // TODO: Navigate to comments screen
-              },
+              label: Str.commented,
+              onTap: () {},
             ),
             _ProfileItem(
               icon: Icons.star,
               iconColor: Colors.amber,
-              label: 'Rates',
-              onTap: () {
-                // TODO: Navigate to rated recipes screen
-              },
+              label: Str.rates,
+              onTap: () {},
             ),
             _ProfileItem(
               icon: Icons.settings_outlined,
-              label: 'Configuration',
+              label: Str.configuration,
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -103,7 +94,6 @@ class UserProfileScreen extends StatelessWidget {
 
             const Spacer(),
 
-            // Log out
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 24),
               child: SizedBox(
@@ -119,9 +109,9 @@ class UserProfileScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: const Text(
-                    'Log out',
-                    style: TextStyle(
+                  child: Text(
+                    Str.logOut,
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
@@ -132,6 +122,7 @@ class UserProfileScreen extends StatelessWidget {
           ],
         ),
       ),
+      ),
     );
   }
 
@@ -139,12 +130,12 @@ class UserProfileScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Log out'),
-        content: const Text('Are you sure you want to log out?'),
+        title: Text(Str.logOutConfirmTitle),
+        content: Text(Str.logOutConfirmBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(Str.cancel),
           ),
           TextButton(
             onPressed: () {
@@ -155,7 +146,7 @@ class UserProfileScreen extends StatelessWidget {
               );
             },
             child:
-                const Text('Log out', style: TextStyle(color: Colors.red)),
+                Text(Str.logOutShort, style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),

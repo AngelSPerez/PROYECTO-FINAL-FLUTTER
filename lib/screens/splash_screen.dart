@@ -3,7 +3,7 @@ import '../widgets/app_widgets.dart';
 import 'welcome_screen.dart';
 import 'login_screen.dart';
 
-/// First screen — lets the user choose between User and Administrator roles.
+/// First screen — always in Spanish per design.
 class SplashScreen extends StatelessWidget {
   const SplashScreen({super.key});
 
@@ -45,7 +45,6 @@ class SplashScreen extends StatelessWidget {
                           ),
                         ),
                         const Spacer(flex: 3),
-                        // Usuario button
                         SizedBox(
                           width: double.infinity,
                           height: 54,
@@ -76,13 +75,11 @@ class SplashScreen extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        // Administrador button
                         SizedBox(
                           width: double.infinity,
                           height: 54,
                           child: ElevatedButton(
                             onPressed: () {
-                              // TODO: Navigate to admin login screen
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(

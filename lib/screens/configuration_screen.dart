@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import '../main.dart';
+import '../l10n/app_locale.dart';
+import '../l10n/strings.dart';
+import '../widgets/locale_aware.dart';
 
 class ConfigurationScreen extends StatefulWidget {
   const ConfigurationScreen({super.key});
@@ -8,36 +11,55 @@ class ConfigurationScreen extends StatefulWidget {
   State<ConfigurationScreen> createState() => _ConfigurationScreenState();
 }
 
-class _ConfigurationScreenState extends State<ConfigurationScreen> {
-  String _language = 'English';
-  String _theme = AppTheme.mode.value == ThemeMode.dark ? 'Dark'
-      : AppTheme.mode.value == ThemeMode.system ? 'System'
-      : 'Light';
-  final String _appName = 'ReciveRecipe';
+class _ConfigurationScreenState extends State<ConfigurationScreen> with LocaleAwareState {
+  String get _language => AppLocale.language.value == 'es' ? Str.spanish : Str.english;
 
+  // ── Placeholder user data ───────────────────────────────────────────
   // TODO: Pull from FirebaseAuth.instance.currentUser
   final String _currentEmail = 'angel@gmail.com';
 
+  String get _themeValue {
+    switch (AppTheme.mode.value) {
+      case ThemeMode.dark:
+        return 'Dark';
+      case ThemeMode.system:
+        return 'System';
+      default:
+        return 'Light';
+    }
+  }
+
+  String get _themeLabel {
+    switch (AppTheme.mode.value) {
+      case ThemeMode.dark:
+        return Str.dark;
+      case ThemeMode.system:
+        return Str.system;
+      default:
+        return Str.light;
+    }
+  }
+
   // ── Language dialog ────────────────────────────────────────────────────────
   void _showLanguageDialog() {
-    String selected = _language;
+    String selected = AppLocale.language.value;
     showDialog(
       context: context,
       builder: (_) => StatefulBuilder(
         builder: (ctx, setDlg) => AlertDialog(
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('Language'),
+          title: Text(Str.language),
           content: RadioGroup<String>(
             groupValue: selected,
             onChanged: (v) => setDlg(() => selected = v!),
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              children: ['English', 'Spanish'].map((lang) {
-                return RadioListTile<String>(
-                  value: lang,
-                  title: Text(lang),
-                  activeColor: Theme.of(context).colorScheme.primary,
+              children: ['en', 'es'].map((lang) {
+                return ListTile(
+                  leading: Radio<String>(value: lang),
+                  title: Text(lang == 'en' ? Str.english : Str.spanish),
+                  onTap: () => setDlg(() => selected = lang),
                   contentPadding: EdgeInsets.zero,
                 );
               }).toList(),
@@ -46,10 +68,10 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> {
           actions: [
             TextButton(
               onPressed: () {
-                setState(() => _language = selected);
+                AppLocale.language.value = selected;
                 Navigator.pop(ctx);
               },
-              child: Text('Accept', style: TextStyle(color: Theme.of(context).colorScheme.primary)),
+              child: Text(Str.accept, style: TextStyle(color: Theme.of(context).colorScheme.primary)),
             ),
           ],
         ),
@@ -59,24 +81,24 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> {
 
   // ── Theme dialog ───────────────────────────────────────────────────────────
   void _showThemeDialog() {
-    String selected = _theme;
+    String selected = _themeValue;
     showDialog(
       context: context,
       builder: (_) => StatefulBuilder(
         builder: (ctx, setDlg) => AlertDialog(
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('Theme'),
+          title: Text(Str.theme),
           content: RadioGroup<String>(
             groupValue: selected,
             onChanged: (v) => setDlg(() => selected = v!),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: ['Light', 'Dark', 'System'].map((t) {
-                return RadioListTile<String>(
-                  value: t,
-                  title: Text(t),
-                  activeColor: Theme.of(context).colorScheme.primary,
+                return ListTile(
+                  leading: Radio<String>(value: t),
+                  title: Text(t == 'Light' ? Str.light : t == 'Dark' ? Str.dark : Str.system),
+                  onTap: () => setDlg(() => selected = t),
                   contentPadding: EdgeInsets.zero,
                 );
               }).toList(),
@@ -85,7 +107,6 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> {
           actions: [
             TextButton(
               onPressed: () {
-                setState(() => _theme = selected);
                 AppTheme.mode.value = selected == 'Dark'
                     ? ThemeMode.dark
                     : selected == 'Light'
@@ -93,7 +114,7 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> {
                         : ThemeMode.system;
                 Navigator.pop(ctx);
               },
-              child: Text('Accept', style: TextStyle(color: Theme.of(context).colorScheme.primary)),
+              child: Text(Str.accept, style: TextStyle(color: Theme.of(context).colorScheme.primary)),
             ),
           ],
         ),
@@ -101,7 +122,7 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> {
     );
   }
 
-  // ── Change password dialog ─────────────────────────────────────────────────
+  // ── Change password dialog (placeholder) ──────────────────────────────────
   void _showChangePasswordDialog() {
     final currentCtrl = TextEditingController();
     final newCtrl = TextEditingController();
@@ -111,39 +132,39 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> {
       builder: (_) => AlertDialog(
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Change password'),
+        title: Text(Str.changePassword),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _PassField(controller: currentCtrl, label: 'Current password'),
+            _PassField(controller: currentCtrl, label: Str.currentPassword),
             const SizedBox(height: 8),
-            _PassField(controller: newCtrl, label: 'New password'),
+            _PassField(controller: newCtrl, label: Str.newPassword),
             const SizedBox(height: 8),
-            _PassField(controller: confirmCtrl, label: 'Confirm password'),
+            _PassField(controller: confirmCtrl, label: Str.confirmPassword),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(Str.cancel),
           ),
           TextButton(
             onPressed: () {
               // TODO: FirebaseAuth password update
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Password updated')),
+                SnackBar(content: Text(Str.passwordUpdated)),
               );
             },
-            child: const Text('Save',
-                style: TextStyle(color: Color(0xFF9C27B0))),
+            child: Text(Str.save,
+                style: const TextStyle(color: Color(0xFF9C27B0))),
           ),
         ],
       ),
     );
   }
 
-  // ── Change email dialog ────────────────────────────────────────────────────
+  // ── Change email dialog (placeholder) ──────────────────────────────────────
   void _showChangeEmailDialog() {
     final emailCtrl = TextEditingController(text: _currentEmail);
     showDialog(
@@ -151,30 +172,30 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> {
       builder: (_) => AlertDialog(
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Change E-mail'),
+        title: Text(Str.changeEmail),
         content: TextField(
           controller: emailCtrl,
           keyboardType: TextInputType.emailAddress,
-          decoration: const InputDecoration(
-            labelText: 'New e-mail',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: Str.newEmail,
+            border: const OutlineInputBorder(),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(Str.cancel),
           ),
           TextButton(
             onPressed: () {
               // TODO: FirebaseAuth email update
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('E-mail updated')),
+                SnackBar(content: Text(Str.emailUpdated)),
               );
             },
-            child: const Text('Save',
-                style: TextStyle(color: Color(0xFF9C27B0))),
+            child: Text(Str.save,
+                style: const TextStyle(color: Color(0xFF9C27B0))),
           ),
         ],
       ),
@@ -188,15 +209,12 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> {
       builder: (_) => AlertDialog(
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('About us'),
-        content: const Text(
-          'ReciveRecipe is a digital recipe book for home cooking enthusiasts. '
-          'Discover, save, and share your favourite recipes.\n\nVersion 1.0.0',
-        ),
+        title: Text(Str.aboutUs),
+        content: Text(Str.aboutText),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+            child: Text(Str.close),
           ),
         ],
       ),
@@ -209,9 +227,9 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF9C27B0),
         foregroundColor: Colors.white,
-        title: const Text(
-          'Configuration',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        title: Text(
+          Str.configurationTitle,
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -221,31 +239,31 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> {
       body: Column(
         children: [
           _SettingsTile(
-            title: 'Language',
+            title: Str.language,
             subtitle: _language,
             onTap: _showLanguageDialog,
           ),
           const Divider(height: 1, indent: 16, endIndent: 16),
           _SettingsTile(
-            title: 'Theme',
-            subtitle: _theme,
+            title: Str.theme,
+            subtitle: _themeLabel,
             onTap: _showThemeDialog,
           ),
           const Divider(height: 1, indent: 16, endIndent: 16),
           _SettingsTile(
-            title: 'About us',
-            subtitle: _appName,
+            title: Str.aboutUs,
+            subtitle: 'ReciveRecipe',
             onTap: _showAboutDialog,
           ),
           const Divider(height: 1, indent: 16, endIndent: 16),
           _SettingsTile(
-            title: 'Change password',
+            title: Str.changePassword,
             subtitle: '•••••••',
             onTap: _showChangePasswordDialog,
           ),
           const Divider(height: 1, indent: 16, endIndent: 16),
           _SettingsTile(
-            title: 'Change E-mail',
+            title: Str.changeEmail,
             subtitle: _currentEmail,
             onTap: _showChangeEmailDialog,
           ),

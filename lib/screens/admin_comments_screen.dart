@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../l10n/strings.dart';
+import '../widgets/locale_aware.dart';
 
 class AdminCommentsScreen extends StatefulWidget {
   const AdminCommentsScreen({super.key});
@@ -7,7 +9,7 @@ class AdminCommentsScreen extends StatefulWidget {
   State<AdminCommentsScreen> createState() => _AdminCommentsScreenState();
 }
 
-class _AdminCommentsScreenState extends State<AdminCommentsScreen> {
+class _AdminCommentsScreenState extends State<AdminCommentsScreen> with LocaleAwareState {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
 
@@ -57,7 +59,7 @@ class _AdminCommentsScreenState extends State<AdminCommentsScreen> {
   void _deleteComment(int index) {
     setState(() => _comments.removeAt(index));
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Comentario eliminado')),
+      SnackBar(content: Text(Str.commentDeleted)),
     );
   }
 
@@ -72,7 +74,7 @@ class _AdminCommentsScreenState extends State<AdminCommentsScreen> {
       context: context,
       builder: (_) => StatefulBuilder(
         builder: (ctx, setDlg) => AlertDialog(
-          title: Text(editIndex != null ? 'Editar comentario' : 'Nuevo comentario'),
+          title: Text(editIndex != null ? Str.editComment : Str.newComment),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -82,7 +84,7 @@ class _AdminCommentsScreenState extends State<AdminCommentsScreen> {
                     .map((u) => DropdownMenuItem(value: u, child: Text(u)))
                     .toList(),
                 onChanged: (v) => setDlg(() => selectedUser = v!),
-                decoration: const InputDecoration(labelText: 'Usuario'),
+                decoration: InputDecoration(labelText: Str.user),
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
@@ -91,24 +93,24 @@ class _AdminCommentsScreenState extends State<AdminCommentsScreen> {
                     .map((r) => DropdownMenuItem(value: r, child: Text(r)))
                     .toList(),
                 onChanged: (v) => setDlg(() => selectedRecipe = v!),
-                decoration: const InputDecoration(labelText: 'Receta'),
+                decoration: InputDecoration(labelText: Str.recipe),
               ),
               const SizedBox(height: 8),
               TextField(
                 controller: textCtrl,
                 maxLines: 3,
-                decoration: const InputDecoration(
-                    labelText: 'Comentario', border: OutlineInputBorder()),
+                decoration: InputDecoration(
+                    labelText: Str.comment, border: const OutlineInputBorder()),
               ),
             ],
           ),
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancelar')),
+                child: Text(Str.cancel)),
             ElevatedButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Guardar')),
+                child: Text(Str.save)),
           ],
         ),
       ),
@@ -137,9 +139,9 @@ class _AdminCommentsScreenState extends State<AdminCommentsScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF9C27B0),
         foregroundColor: Colors.white,
-        title: const Text('Comentarios',
+        title: Text(Str.comments,
             style:
-                TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
@@ -159,7 +161,7 @@ class _AdminCommentsScreenState extends State<AdminCommentsScreen> {
               onChanged: (v) => setState(() => _query = v),
               style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
               decoration: InputDecoration(
-                hintText: 'Buscar por usuario, receta o texto...',
+                hintText: Str.searchComment,
                 filled: true,
                 fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                 isDense: true,
@@ -182,7 +184,7 @@ class _AdminCommentsScreenState extends State<AdminCommentsScreen> {
                   Icon(Icons.chat_bubble_outline,
                       size: 64, color: Theme.of(context).colorScheme.outline),
                   const SizedBox(height: 12),
-                  Text('No comments yet',
+                  Text(Str.noCommentsYet,
                       style: TextStyle(color: Theme.of(context).colorScheme.outline, fontSize: 16)),
                 ],
               ),

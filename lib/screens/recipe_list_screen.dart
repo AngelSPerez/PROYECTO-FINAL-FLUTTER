@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import '../models/recipe.dart';
 import '../widgets/app_widgets.dart';
+import '../l10n/strings.dart';
+import '../widgets/locale_aware.dart';
 import 'user_profile_screen.dart';
 import 'recipe_detail_screen.dart';
 import 'splash_screen.dart';
 
-/// Main recipe list screen.
-/// TODO: Replace [placeholderRecipes] with a real Firestore stream.
 class RecipeListScreen extends StatefulWidget {
   const RecipeListScreen({super.key});
 
@@ -14,12 +14,11 @@ class RecipeListScreen extends StatefulWidget {
   State<RecipeListScreen> createState() => _RecipeListScreenState();
 }
 
-class _RecipeListScreenState extends State<RecipeListScreen> {
+class _RecipeListScreenState extends State<RecipeListScreen> with LocaleAwareState {
   final TextEditingController _searchController = TextEditingController();
   bool _isGridView = false;
   bool _showFavoritesOnly = false;
 
-  // TODO: Replace with StreamBuilder<QuerySnapshot> from Firestore
   final List<Recipe> _recipes = placeholderRecipes;
 
   List<Recipe> get _filtered {
@@ -44,12 +43,12 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Log out'),
-        content: const Text('Are you sure you want to log out?'),
+        title: Text(Str.logOutConfirmTitle),
+        content: Text(Str.logOutConfirmBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(Str.cancel),
           ),
           TextButton(
             onPressed: () {
@@ -59,7 +58,7 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
                 (_) => false,
               );
             },
-            child: const Text('Log out', style: TextStyle(color: Colors.red)),
+            child: Text(Str.logOutShort, style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -108,9 +107,8 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
       ),
       body: Column(
         children: [
-          // Search bar
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
             child: Row(
               children: [
                 Expanded(
@@ -118,7 +116,7 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
                     controller: _searchController,
                     onChanged: (_) => setState(() {}),
                     decoration: InputDecoration(
-                      hintText: 'Search...',
+                      hintText: Str.search,
                       hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38)),
                       filled: true,
                       fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
@@ -134,17 +132,15 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
                 ),
                 IconButton(
                   icon: Icon(Icons.tune, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
-                  tooltip: 'Filters',
-                  onPressed: () {
-                    // TODO: Show filter bottom sheet
-                  },
+                  tooltip: Str.filters,
+                  onPressed: () {},
                 ),
                 IconButton(
                   icon: Icon(
                     _showFavoritesOnly ? Icons.favorite : Icons.favorite_border,
                     color: _showFavoritesOnly ? Colors.red : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
-                  tooltip: 'Favorites',
+                  tooltip: Str.favorites,
                   onPressed: () =>
                       setState(() => _showFavoritesOnly = !_showFavoritesOnly),
                 ),
@@ -152,12 +148,11 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
             ),
           ),
 
-          // Recipe list / grid
           Expanded(
             child: filtered.isEmpty
                 ? Center(
                     child: Text(
-                      'No recipes found.',
+                      Str.noRecipesFound,
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
                         fontSize: 16,
@@ -181,7 +176,7 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
       floatingActionButton: FloatingActionButton(
         backgroundColor: Theme.of(context).colorScheme.surface,
         elevation: 2,
-        tooltip: 'Log out',
+        tooltip: Str.logOutShort,
         onPressed: _confirmLogout,
         child: Icon(Icons.logout, color: Theme.of(context).colorScheme.onSurface),
       ),
@@ -202,10 +197,6 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
     setState(() => recipe.isLiked = !recipe.isLiked);
   }
 }
-
-// ─────────────────────────────────────────────
-// List view
-// ─────────────────────────────────────────────
 
 class _ListView extends StatelessWidget {
   final List<Recipe> recipes;
@@ -231,8 +222,6 @@ class _ListView extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             child: Row(
               children: [
-                // Thumbnail placeholder
-                // TODO: Replace with Image.network(r.imageUrl!, fit: BoxFit.cover)
                 RecipeImagePlaceholder(
                   width: 82,
                   height: 82,
@@ -245,7 +234,7 @@ class _ListView extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        r.title,
+                        Str.recipeTitle(r.title),
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -281,10 +270,6 @@ class _ListView extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────
-// Grid view
-// ─────────────────────────────────────────────
-
 class _GridView extends StatelessWidget {
   final List<Recipe> recipes;
   final void Function(Recipe) onTap;
@@ -312,8 +297,7 @@ class _GridView extends StatelessWidget {
         return Card(
           elevation: 2,
           clipBehavior: Clip.antiAlias,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           child: InkWell(
             onTap: () => onTap(r),
             child: Column(
@@ -323,7 +307,6 @@ class _GridView extends StatelessWidget {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      // TODO: Replace with Image.network(r.imageUrl!, fit: BoxFit.cover)
                       Container(
                         color: Theme.of(context).colorScheme.surfaceContainerHigh,
                         child: Center(
@@ -354,7 +337,7 @@ class _GridView extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        r.title,
+                        Str.recipeTitle(r.title),
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 14,

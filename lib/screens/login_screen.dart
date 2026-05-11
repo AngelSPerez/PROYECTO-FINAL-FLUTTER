@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import '../models/recipe.dart';
+import '../l10n/strings.dart';
+import '../widgets/locale_aware.dart';
 import 'recipe_list_screen.dart';
 import 'admin_panel_screen.dart';
 
-/// Login screen — shared by User and Administrator roles.
-/// The [isAdmin] flag can be used to adjust Firebase Auth flow later.
-/// TODO: Wire up to Firebase Auth (signInWithEmailAndPassword).
 class LoginScreen extends StatefulWidget {
   final bool isAdmin;
   const LoginScreen({super.key, this.isAdmin = false});
@@ -14,7 +13,7 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends State<LoginScreen> with LocaleAwareState {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -32,7 +31,6 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
 
-    // TODO: Replace with Firebase Auth
     await Future.delayed(const Duration(milliseconds: 500));
 
     if (!mounted) return;
@@ -66,9 +64,9 @@ class _LoginScreenState extends State<LoginScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: widget.isAdmin
-            ? const Text(
-                'Admin',
-                style: TextStyle(
+            ? Text(
+                Str.adminTitle,
+                style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 20,
                 ),
@@ -84,7 +82,6 @@ class _LoginScreenState extends State<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 24),
-                // Avatar placeholder
                 Center(
                   child: Container(
                     width: 110,
@@ -105,8 +102,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 40),
 
-                // E-mail
-                const _FieldLabel(label: 'E-mail:'),
+                _FieldLabel(label: Str.emailLabel),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _emailController,
@@ -114,15 +110,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   textInputAction: TextInputAction.next,
                   decoration: _inputDecoration(hint: 'angel@gmail.com', accent: accent, context: context),
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'Please enter your email';
-                    if (!v.contains('@')) return 'Enter a valid email';
+                    if (v == null || v.trim().isEmpty) return Str.enterEmail;
+                    if (!v.contains('@')) return Str.validEmail;
                     return null;
                   },
                 ),
                 const SizedBox(height: 20),
 
-                // Password
-                const _FieldLabel(label: 'Password:'),
+                _FieldLabel(label: Str.passwordLabel),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _passwordController,
@@ -140,11 +135,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   validator: (v) =>
-                      (v == null || v.isEmpty) ? 'Please enter your password' : null,
+                      (v == null || v.isEmpty) ? Str.enterPassword : null,
                 ),
                 const SizedBox(height: 40),
 
-                // Log In button
                 SizedBox(
                   width: double.infinity,
                   height: 54,
@@ -167,9 +161,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               strokeWidth: 2.5,
                             ),
                           )
-                        : const Text(
-                            'Log In',
-                            style: TextStyle(
+                        : Text(
+                            Str.logInButton,
+                            style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                             ),
