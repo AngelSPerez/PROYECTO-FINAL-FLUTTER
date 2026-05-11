@@ -71,10 +71,10 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
     final filtered = _filtered;
 
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
         automaticallyImplyLeading: false,
         backgroundColor: const Color(0xFF9C27B0),
+        centerTitle: true,
         elevation: 0,
         leadingWidth: 48,
         leading: IconButton(
@@ -84,46 +84,14 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
             MaterialPageRoute(builder: (_) => const UserProfileScreen()),
           ),
         ),
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            DropdownButtonHideUnderline(
-              child: DropdownButton<bool>(
-                value: _showFavoritesOnly,
-                dropdownColor: const Color(0xFF9C27B0),
-                icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
-                items: const [
-                  DropdownMenuItem(
-                    value: false,
-                    child: Text('All',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold)),
-                  ),
-                  DropdownMenuItem(
-                    value: true,
-                    child: Text('Favorites',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold)),
-                  ),
-                ],
-                onChanged: (v) => setState(() => _showFavoritesOnly = v ?? false),
-              ),
-            ),
-            Text(
-              ' (${filtered.length})',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
+        title: const Text(
+          'RecipeRecive',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
         ),
-        centerTitle: true,
         actions: [
           IconButton(
             icon: Icon(
@@ -151,10 +119,10 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
                     onChanged: (_) => setState(() {}),
                     decoration: InputDecoration(
                       hintText: 'Search...',
-                      hintStyle: const TextStyle(color: Colors.black38),
+                      hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38)),
                       filled: true,
-                      fillColor: Colors.grey[200],
-                      prefixIcon: const Icon(Icons.search, color: Colors.black38),
+                      fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                      prefixIcon: Icon(Icons.search, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38)),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(30),
                         borderSide: BorderSide.none,
@@ -165,7 +133,7 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.tune, color: Colors.black54),
+                  icon: Icon(Icons.tune, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
                   tooltip: 'Filters',
                   onPressed: () {
                     // TODO: Show filter bottom sheet
@@ -174,7 +142,7 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
                 IconButton(
                   icon: Icon(
                     _showFavoritesOnly ? Icons.favorite : Icons.favorite_border,
-                    color: _showFavoritesOnly ? Colors.red : Colors.black54,
+                    color: _showFavoritesOnly ? Colors.red : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                   tooltip: 'Favorites',
                   onPressed: () =>
@@ -187,10 +155,13 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
           // Recipe list / grid
           Expanded(
             child: filtered.isEmpty
-                ? const Center(
+                ? Center(
                     child: Text(
                       'No recipes found.',
-                      style: TextStyle(color: Colors.black45, fontSize: 16),
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
+                        fontSize: 16,
+                      ),
                     ),
                   )
                 : _isGridView
@@ -208,11 +179,11 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         elevation: 2,
         tooltip: 'Log out',
         onPressed: _confirmLogout,
-        child: const Icon(Icons.logout, color: Colors.black87),
+        child: Icon(Icons.logout, color: Theme.of(context).colorScheme.onSurface),
       ),
     );
   }
@@ -220,7 +191,10 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
   void _openDetail(Recipe recipe) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => RecipeDetailScreen(recipe: recipe)),
+      MaterialPageRoute(builder: (_) => RecipeDetailScreen(
+        recipe: recipe,
+        allRecipes: _recipes,
+      )),
     );
   }
 
@@ -282,9 +256,9 @@ class _ListView extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         r.totalTime,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
-                          color: Colors.black45,
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
                         ),
                       ),
                     ],
@@ -293,7 +267,7 @@ class _ListView extends StatelessWidget {
                 IconButton(
                   icon: Icon(
                     r.isLiked ? Icons.favorite : Icons.favorite_border,
-                    color: r.isLiked ? Colors.red : Colors.black38,
+                    color: r.isLiked ? Colors.red : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38),
                     size: 26,
                   ),
                   onPressed: () => onLike(r),
@@ -351,9 +325,9 @@ class _GridView extends StatelessWidget {
                     children: [
                       // TODO: Replace with Image.network(r.imageUrl!, fit: BoxFit.cover)
                       Container(
-                        color: Colors.grey[300],
-                        child: const Center(
-                          child: Icon(Icons.restaurant, size: 44, color: Colors.grey),
+                        color: Theme.of(context).colorScheme.surfaceContainerHigh,
+                        child: Center(
+                          child: Icon(Icons.restaurant, size: 44, color: Theme.of(context).colorScheme.outline),
                         ),
                       ),
                       Positioned(
@@ -365,8 +339,8 @@ class _GridView extends StatelessWidget {
                             r.isLiked ? Icons.favorite : Icons.favorite_border,
                             color: r.isLiked ? Colors.red : Colors.white,
                             size: 22,
-                            shadows: const [
-                              Shadow(color: Colors.black26, blurRadius: 4),
+                            shadows: [
+                              Shadow(color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.26), blurRadius: 4),
                             ],
                           ),
                         ),
@@ -391,9 +365,9 @@ class _GridView extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         r.totalTime,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: Colors.black45,
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
                         ),
                       ),
                     ],

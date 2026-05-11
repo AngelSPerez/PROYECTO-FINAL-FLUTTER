@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'splash_screen.dart';
+import 'configuration_screen.dart';
 
 /// User profile screen.
 /// TODO: Load real user data from Firebase Auth / Firestore.
@@ -12,13 +13,13 @@ class UserProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          icon: Icon(Icons.arrow_back, color: Theme.of(context).colorScheme.onSurface),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -27,31 +28,33 @@ class UserProfileScreen extends StatelessWidget {
           children: [
             const SizedBox(height: 12),
 
-            // Avatar
-            Container(
-              width: 118,
-              height: 118,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.black87, width: 2.5),
-              ),
-              child: const Icon(
-                Icons.person_outline,
-                size: 70,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 14),
+                Container(
+                  width: 118,
+                  height: 118,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Theme.of(context).colorScheme.onSurface,
+                      width: 2.5,
+                    ),
+                  ),
+                  child: Icon(
+                    Icons.person_outline,
+                    size: 70,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 14),
 
-            // Name — TODO: replace with Firebase Auth displayName
-            const Text(
-              _userName,
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
+                // Name — TODO: replace with Firebase Auth displayName
+                Text(
+                  _userName,
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
             const SizedBox(height: 4),
             const Divider(),
 
@@ -89,9 +92,12 @@ class UserProfileScreen extends StatelessWidget {
             _ProfileItem(
               icon: Icons.settings_outlined,
               label: 'Configuration',
-              onTap: () {
-                // TODO: Navigate to settings screen
-              },
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const ConfigurationScreen(),
+                ),
+              ),
             ),
             const Divider(),
 
@@ -173,9 +179,9 @@ class _ProfileItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: Icon(icon, color: iconColor ?? Colors.black87, size: 24),
+      leading: Icon(icon, color: iconColor ?? Theme.of(context).colorScheme.onSurface, size: 24),
       title: Text(label, style: const TextStyle(fontSize: 16)),
-      trailing: const Icon(Icons.chevron_right, color: Colors.black26),
+      trailing: Icon(Icons.chevron_right, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.26)),
       onTap: onTap,
     );
   }

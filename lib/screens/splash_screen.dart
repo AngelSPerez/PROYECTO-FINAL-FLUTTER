@@ -10,7 +10,6 @@ class SplashScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -23,25 +22,25 @@ class SplashScreen extends StatelessWidget {
                     child: Column(
                       children: [
                         const Spacer(flex: 2),
-                        const AppLogo(size: 150),
+                        const AppLogo(size: 165),
                         const SizedBox(height: 28),
-                        const Text(
+                        Text(
                           'RecipeRecive',
                           style: TextStyle(
                             fontSize: 30,
                             fontWeight: FontWeight.bold,
-                            color: Colors.black87,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
                         const SizedBox(height: 20),
-                        const Text(
+                        Text(
                           'Recetario digital con recetas listas para cocinar en casa. '
                           'Pensado para quienes no saben qué preparar, ofrece platillos '
                           'organizados por chefs y permite calificar y comentar cada receta.',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 15,
-                            color: Colors.black54,
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                             height: 1.6,
                           ),
                         ),

@@ -46,13 +46,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          icon: Icon(Icons.arrow_back, color: Theme.of(context).colorScheme.onSurface),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -72,37 +70,40 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     height: 120,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(color: Colors.black87, width: 2.5),
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.onSurface,
+                        width: 2.5,
+                      ),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.person_outline,
                       size: 72,
-                      color: Colors.black87,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                 ),
                 const SizedBox(height: 32),
 
                 // Name
-                _FieldLabel(label: 'Name:'),
+                const _FieldLabel(label: 'Name:'),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _nameController,
                   textInputAction: TextInputAction.next,
-                  decoration: _inputDecoration(hint: 'Angel Salinas Pérez 6J'),
+                  decoration: _inputDecoration(hint: 'Angel Salinas Pérez 6J', context: context),
                   validator: (v) =>
                       (v == null || v.trim().isEmpty) ? 'Please enter your name' : null,
                 ),
                 const SizedBox(height: 20),
 
                 // E-mail
-                _FieldLabel(label: 'E-mail:'),
+                const _FieldLabel(label: 'E-mail:'),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
-                  decoration: _inputDecoration(hint: 'angel@gmail.com'),
+                  decoration: _inputDecoration(hint: 'angel@gmail.com', context: context),
                   validator: (v) {
                     if (v == null || v.trim().isEmpty) return 'Please enter your email';
                     if (!v.contains('@')) return 'Enter a valid email';
@@ -112,18 +113,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 20),
 
                 // Password
-                _FieldLabel(label: 'Password:'),
+                const _FieldLabel(label: 'Password:'),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _passwordController,
                   obscureText: _obscurePassword,
                   textInputAction: TextInputAction.done,
                   onFieldSubmitted: (_) => _register(),
-                  decoration: _inputDecoration(hint: '••••••••').copyWith(
+                  decoration: _inputDecoration(hint: '••••••••', context: context).copyWith(
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                        color: Colors.black45,
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
                       ),
                       onPressed: () =>
                           setState(() => _obscurePassword = !_obscurePassword),
@@ -187,21 +188,22 @@ class _FieldLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       label,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 16,
         fontWeight: FontWeight.bold,
-        color: Colors.black87,
+        color: Theme.of(context).colorScheme.onSurface,
       ),
     );
   }
 }
 
-InputDecoration _inputDecoration({required String hint}) {
+InputDecoration _inputDecoration({required String hint, required BuildContext context}) {
+  final scheme = Theme.of(context).colorScheme;
   return InputDecoration(
     hintText: hint,
-    hintStyle: const TextStyle(color: Colors.black38),
+    hintStyle: TextStyle(color: scheme.onSurface.withValues(alpha: 0.38)),
     filled: true,
-    fillColor: const Color(0xFFEEEEEE),
+    fillColor: scheme.surfaceContainerHighest,
     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(8),

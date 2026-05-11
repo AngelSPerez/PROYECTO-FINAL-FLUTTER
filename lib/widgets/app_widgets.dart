@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// App logo widget with fork, knife and spoon icons.
-/// TODO: Replace with your actual Image.asset('assets/logo.png') or similar.
+/// App logo widget.
 class AppLogo extends StatelessWidget {
   final double size;
 
@@ -9,33 +8,27 @@ class AppLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(size * 0.2),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // Fork
-          Icon(Icons.fork_right, size: size * 0.28, color: const Color(0xFF1565C0)),
-          SizedBox(width: size * 0.02),
-          // Knife / utensil
-          Icon(Icons.straighten, size: size * 0.28, color: const Color(0xFF00897B)),
-          SizedBox(width: size * 0.02),
-          // Spoon
-          Icon(Icons.soup_kitchen, size: size * 0.28, color: const Color(0xFF7CB342)),
-        ],
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(size * 0.2),
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerLow,
+          boxShadow: [
+            BoxShadow(
+              color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.06),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Image.network(
+          'https://raw.githubusercontent.com/AngelSPerez/PROYECTO-FINAL-FLUTTER/refs/heads/main/image.png',
+          fit: BoxFit.cover,
+          width: size,
+          height: size,
+        ),
       ),
     );
   }
@@ -60,9 +53,9 @@ class RecipeImagePlaceholder extends StatelessWidget {
     Widget child = Container(
       width: width,
       height: height,
-      color: Colors.grey[300],
-      child: const Center(
-        child: Icon(Icons.restaurant, size: 48, color: Colors.grey),
+      color: Theme.of(context).colorScheme.surfaceContainerHigh,
+      child: Center(
+        child: Icon(Icons.restaurant, size: 48, color: Theme.of(context).colorScheme.outline),
       ),
     );
 

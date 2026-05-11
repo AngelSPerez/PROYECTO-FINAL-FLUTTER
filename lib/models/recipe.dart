@@ -59,7 +59,6 @@ final List<Recipe> placeholderRecipes = [
       'Rest for 5 minutes before serving.',
     ],
     rating: 4.5,
-    isLiked: true,
   ),
   Recipe(
     id: '3',
@@ -92,7 +91,6 @@ final List<Recipe> placeholderRecipes = [
       'Drop spoonfuls on baking sheet and bake 10–12 minutes.',
     ],
     rating: 4.6,
-    isLiked: true,
   ),
   Recipe(
     id: '5',

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../models/recipe.dart';
 import 'recipe_list_screen.dart';
+import 'admin_panel_screen.dart';
 
 /// Login screen — shared by User and Administrator roles.
 /// The [isAdmin] flag can be used to adjust Firebase Auth flow later.
@@ -36,10 +38,19 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
     setState(() => _isLoading = false);
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const RecipeListScreen()),
-    );
+    if (widget.isAdmin) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => AdminPanelScreen(recipes: placeholderRecipes),
+        ),
+      );
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const RecipeListScreen()),
+      );
+    }
   }
 
   @override
@@ -47,23 +58,22 @@ class _LoginScreenState extends State<LoginScreen> {
     final accent = widget.isAdmin ? const Color(0xFFD32F2F) : const Color(0xFF9C27B0);
 
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          icon: Icon(Icons.arrow_back, color: Theme.of(context).colorScheme.onSurface),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
-          widget.isAdmin ? 'Admin Login' : 'Log In',
-          style: const TextStyle(
-            color: Colors.black87,
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-          ),
-        ),
+        title: widget.isAdmin
+            ? const Text(
+                'Admin',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                ),
+              )
+            : null,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -81,25 +91,28 @@ class _LoginScreenState extends State<LoginScreen> {
                     height: 110,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(color: Colors.black87, width: 2.5),
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.onSurface,
+                        width: 2.5,
+                      ),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.person_outline,
                       size: 66,
-                      color: Colors.black87,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                 ),
                 const SizedBox(height: 40),
 
                 // E-mail
-                _FieldLabel(label: 'E-mail:'),
+                const _FieldLabel(label: 'E-mail:'),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
-                  decoration: _inputDecoration(hint: 'angel@gmail.com', accent: accent),
+                  decoration: _inputDecoration(hint: 'angel@gmail.com', accent: accent, context: context),
                   validator: (v) {
                     if (v == null || v.trim().isEmpty) return 'Please enter your email';
                     if (!v.contains('@')) return 'Enter a valid email';
@@ -109,18 +122,18 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 20),
 
                 // Password
-                _FieldLabel(label: 'Password:'),
+                const _FieldLabel(label: 'Password:'),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _passwordController,
                   obscureText: _obscurePassword,
                   textInputAction: TextInputAction.done,
                   onFieldSubmitted: (_) => _login(),
-                  decoration: _inputDecoration(hint: '••••••••', accent: accent).copyWith(
+                  decoration: _inputDecoration(hint: '••••••••', accent: accent, context: context).copyWith(
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                        color: Colors.black45,
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
                       ),
                       onPressed: () =>
                           setState(() => _obscurePassword = !_obscurePassword),
@@ -181,21 +194,23 @@ class _FieldLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       label,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 16,
         fontWeight: FontWeight.bold,
-        color: Colors.black87,
+        color: Theme.of(context).colorScheme.onSurface,
       ),
     );
   }
 }
 
-InputDecoration _inputDecoration({required String hint, required Color accent}) {
+InputDecoration _inputDecoration(
+    {required String hint, required Color accent, required BuildContext context}) {
+  final scheme = Theme.of(context).colorScheme;
   return InputDecoration(
     hintText: hint,
-    hintStyle: const TextStyle(color: Colors.black38),
+    hintStyle: TextStyle(color: scheme.onSurface.withValues(alpha: 0.38)),
     filled: true,
-    fillColor: const Color(0xFFEEEEEE),
+    fillColor: scheme.surfaceContainerHighest,
     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(8),
