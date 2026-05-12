@@ -6,6 +6,8 @@
 
 Libro de recetas digital para cocina casera.
 
+**PROBAR AHORA** https://appetize.io/app/b_4wtoyyeu6oa4wgxlrdbali35xe
+
 ## Admin
 
 - **Correo:** `admin@reciperecive.com`
