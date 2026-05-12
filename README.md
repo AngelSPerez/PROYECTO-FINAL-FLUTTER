@@ -1,6 +1,6 @@
 # RecipeRecive
 
-## Para esta aplicacion se uso Firebase, Flutter, Claude IA, VS Code y OpenCode IA
+## Para esta aplicacion se uso Firebase, Flutter, Claude AI, VS Code y OpenCode AI
 
 > Tiempo de desarollo: 2 dias aproximadamente.
 
