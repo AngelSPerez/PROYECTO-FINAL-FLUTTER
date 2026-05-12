@@ -86,6 +86,19 @@ class AuthService {
 
   Future<bool> isLoggedIn() async => _auth.currentUser != null;
 
+  Future<AppUser?> tryRestoreSession() async {
+    final fbUser = _auth.currentUser;
+    if (fbUser == null) return null;
+    try {
+      final doc = await _db.collection('users').doc(fbUser.uid).get();
+      if (!doc.exists) return null;
+      _currentUser = AppUser.fromMap(doc.data()!);
+      return _currentUser;
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<bool> hasSeeded() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(_seededKey) ?? false;

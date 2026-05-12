@@ -58,6 +58,8 @@ class _RegisterScreenState extends State<RegisterScreen> with LocaleAwareState {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(

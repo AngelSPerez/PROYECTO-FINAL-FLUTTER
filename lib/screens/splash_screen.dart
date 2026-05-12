@@ -1,10 +1,37 @@
 import 'package:flutter/material.dart';
+import '../services/auth_service.dart';
 import '../widgets/app_widgets.dart';
 import 'role_choice_screen.dart';
+import 'recipe_list_screen.dart';
 
 /// First screen — always in Spanish per design.
-class SplashScreen extends StatelessWidget {
+class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
+
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  @override
+  void initState() {
+    super.initState();
+    _tryAutoLogin();
+  }
+
+  Future<void> _tryAutoLogin() async {
+    await Future.delayed(const Duration(milliseconds: 800));
+    if (!mounted) return;
+    final user = await AuthService.instance.tryRestoreSession();
+    if (user != null && mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const RecipeListScreen(),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

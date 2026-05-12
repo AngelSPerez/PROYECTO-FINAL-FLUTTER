@@ -241,8 +241,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> with LocaleAwar
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(24),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + MediaQuery.of(ctx).padding.bottom),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -273,8 +273,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> with LocaleAwar
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(24),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + MediaQuery.of(ctx).padding.bottom),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -772,8 +772,11 @@ class _CommentSheetState extends State<_CommentSheet> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
+      padding: EdgeInsets.fromLTRB(
+        0,
+        0,
+        0,
+        MediaQuery.of(context).viewInsets.bottom + MediaQuery.of(context).padding.bottom,
       ),
       child: Container(
         padding: const EdgeInsets.all(16),

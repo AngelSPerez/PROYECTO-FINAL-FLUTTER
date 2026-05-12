@@ -79,14 +79,16 @@ class _RecipeListScreenState extends State<RecipeListScreen> with LocaleAwareSta
             child: Text(Str.cancel),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(ctx);
+              await AuthService.instance.logout();
+              if (!context.mounted) return;
               Navigator.of(context).pushAndRemoveUntil(
                 MaterialPageRoute(builder: (_) => const SplashScreen()),
                 (_) => false,
               );
             },
-            child: Text(Str.logOutShort, style: const TextStyle(color: Colors.red)),
+            child:           Text(Str.logOutShort, style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),

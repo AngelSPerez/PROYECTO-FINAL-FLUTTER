@@ -6,6 +6,7 @@ import '../l10n/strings.dart';
 import 'splash_screen.dart';
 import 'configuration_screen.dart';
 import 'user_items_screen.dart';
+import 'admin_panel_screen.dart';
 
 class UserProfileScreen extends StatelessWidget {
   const UserProfileScreen({super.key});
@@ -117,6 +118,21 @@ class UserProfileScreen extends StatelessWidget {
                 ),
               ),
             ),
+            if (user?.role == 'admin')
+              _ProfileItem(
+                icon: Icons.admin_panel_settings_outlined,
+                label: Str.adminPanel,
+                onTap: () async {
+                  final recipes = await FirebaseService.instance.getRecipes();
+                  if (!context.mounted) return;
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => AdminPanelScreen(recipes: recipes),
+                    ),
+                  );
+                },
+              ),
             const Divider(),
 
             const Spacer(),
@@ -165,9 +181,10 @@ class UserProfileScreen extends StatelessWidget {
             child: Text(Str.cancel),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(ctx);
-              AuthService.instance.logout();
+              await AuthService.instance.logout();
+              if (!context.mounted) return;
               Navigator.of(context).pushAndRemoveUntil(
                 MaterialPageRoute(builder: (_) => const SplashScreen()),
                 (_) => false,

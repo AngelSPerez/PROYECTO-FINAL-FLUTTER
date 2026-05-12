@@ -14,6 +14,8 @@ class WelcomeScreen extends StatelessWidget {
       valueListenable: AppLocale.language,
       builder: (_, __, ___) => Scaffold(
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(

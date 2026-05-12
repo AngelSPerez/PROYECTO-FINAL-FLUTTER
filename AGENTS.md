@@ -16,7 +16,9 @@ flutter run              # launch on connected device/emulator
 - **State**: `setState` everywhere + `AppTheme.mode` (a `ValueNotifier<ThemeMode>` in `main.dart`) for light/dark/system toggle.
 - **Theme config**: `ConfigurationScreen` (`lib/screens/configuration_screen.dart`) writes to `AppTheme.mode.value`. Body wrapped in `SafeArea`.
 - **i18n**: `lib/l10n/strings.dart` — `Str` static class reads `AppLocale.language` (`ValueNotifier<String>`) and returns English/Spanish/Portuguese strings.
-- **Splash screen**: always in Spanish (hardcoded, not affected by language toggle).
+- **Splash screen**: always in Spanish (hardcoded, not affected by language toggle). On init, checks `FirebaseAuth.instance.currentUser` via `AuthService.tryRestoreSession()` — if logged in, auto-navigates to `RecipeListScreen` (or `AdminPanelScreen` for admin) after 800ms branding delay.
+- **Session persistence**: `AuthService.tryRestoreSession()` queries `users` collection by `_auth.currentUser.uid` to rehydrate `_currentUser`. Called from `SplashScreen._tryAutoLogin()` so returning users skip login flow.
+- **Admin profile button**: `UserProfileScreen` shows admin panel entry only when `user.role == 'admin'`, using same `_ProfileItem` style as other items.
 - **Persistence**: `lib/services/preferences_service.dart` wraps `shared_preferences` for theme mode and language. Initialized in `main()` before `runApp`.
 - **Models**: `lib/models/recipe.dart` — `Recipe` class + `placeholderRecipes` list (fallback data).
 - **Screens**: `lib/screens/` — 17+ files (splash → welcome → register/login → recipe list/detail + 7 admin sub-screens + config + profile + user_items_screen with 4 sub-screens).
@@ -36,7 +38,7 @@ flutter run              # launch on connected device/emulator
   - `saved`: same structure as `liked`
   - `comments`: fields — `user`, `recipeId`, `text` (nullable), `rating` (int 1-5), `timestamp`
   - `ratings`: fields — `user`, `recipeId`, `rating` (int 1-5), `timestamp`. Written independently when user submits rating via comment sheet.
-- **Admin seeding**: `AuthService.seedAdmin()` called on first launch — creates admin@reciperecive.com / Admin123! in Firebase Auth and `users` collection.
+- **Admin seeding**: `AuthService.seedAdmin()` called on first launch — creates admin@reciperecive.com / Admin123! in Firebase Auth and `users` collection. After seeding, `AuthService.logout()` is called so the user starts fresh at the splash screen.
 
 ## Key Features
 

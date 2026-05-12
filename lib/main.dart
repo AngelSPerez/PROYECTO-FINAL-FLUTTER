@@ -32,6 +32,7 @@ Future<void> main() async {
     await AuthService.instance.seedAdmin();
     await FirebaseService.instance.seedRecipes();
     await AuthService.instance.markSeeded();
+    await AuthService.instance.logout();
   }
 
   runApp(const RecipeReciveApp());
