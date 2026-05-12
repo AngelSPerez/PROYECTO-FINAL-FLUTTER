@@ -174,29 +174,32 @@ class _RecipeListScreenState extends State<RecipeListScreen> with LocaleAwareSta
           ),
 
           Expanded(
-            child: filtered.isEmpty
-                ? Center(
-                    child: Text(
-                      Str.noRecipesFound,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
-                        fontSize: 16,
+            child: Padding(
+              padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom),
+              child: filtered.isEmpty
+                  ? Center(
+                      child: Text(
+                        Str.noRecipesFound,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
+                          fontSize: 16,
+                        ),
                       ),
-                    ),
-                  )
-                : _isGridView
-                    ? _GridView(
-                        recipes: filtered,
-                        recommended: _recommended,
-                        onTap: _openDetail,
-                        onLike: _toggleLike,
-                      )
-                    : _ListView(
-                        recipes: filtered,
-                        recommended: _recommended,
-                        onTap: _openDetail,
-                        onLike: _toggleLike,
-                      ),
+                    )
+                  : _isGridView
+                      ? _GridView(
+                          recipes: filtered,
+                          recommended: _recommended,
+                          onTap: _openDetail,
+                          onLike: _toggleLike,
+                        )
+                      : _ListView(
+                          recipes: filtered,
+                          recommended: _recommended,
+                          onTap: _openDetail,
+                          onLike: _toggleLike,
+                        ),
+            ),
           ),
         ],
       ),

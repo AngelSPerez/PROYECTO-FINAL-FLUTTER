@@ -605,6 +605,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> with LocaleAwar
                     ),
 
                     const SizedBox(height: 24),
+                    SizedBox(height: MediaQuery.of(context).padding.bottom),
                     ],
                   ),
                 ),
