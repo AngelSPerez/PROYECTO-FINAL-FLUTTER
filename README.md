@@ -2,6 +2,8 @@
 
 ## Para esta aplicacion se uso Firebase, Flutter, Claude IA, VS Code y OpenCode
 
+> Tiempo de desarollo: 2 dias aproximadamente.
+
 Libro de recetas digital para cocina casera.
 
 ## Admin
