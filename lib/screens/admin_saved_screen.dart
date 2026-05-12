@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/recipe.dart';
+import '../services/firebase_service.dart';
 import '../l10n/strings.dart';
 import '../widgets/locale_aware.dart';
 
@@ -15,67 +17,63 @@ class AdminSavedScreen extends StatefulWidget {
 class _AdminSavedScreenState extends State<AdminSavedScreen> with LocaleAwareState {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
-
-  final List<Map<String, dynamic>> _entries = [
-    {'user': 'Angel Salinas', 'recipeIdx': 0, 'savedAt': '10 May 2026'},
-    {'user': 'María López', 'recipeIdx': 3, 'savedAt': '9 May 2026'},
-    {'user': 'Angel Salinas', 'recipeIdx': 5, 'savedAt': '8 May 2026'},
-  ];
+  List<Map<String, dynamic>> _entries = [];
+  StreamSubscription? _subscription;
 
   final _availableUsers = ['Angel Salinas', 'María López', 'Carlos Ruiz'];
 
-  List<Map<String, dynamic>> get _filtered => _entries.where((e) {
-        final recipe = e['recipeIdx'] < widget.recipes.length
-            ? widget.recipes[e['recipeIdx']]
-            : null;
-        final title = recipe?.title.toLowerCase() ?? '';
-        final user = (e['user'] as String).toLowerCase();
-        final q = _query.toLowerCase();
-        return title.contains(q) || user.contains(q);
-      }).toList();
+  @override
+  void initState() {
+    super.initState();
+    _subscription = FirebaseService.instance.streamSaved().listen((entries) {
+      if (mounted) setState(() => _entries = entries);
+    });
+  }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _subscription?.cancel();
     super.dispose();
   }
 
-  void _deleteEntry(Map<String, dynamic> entry) {
-    setState(() => _entries.remove(entry));
+  List<Map<String, dynamic>> get _filtered => _entries.where((e) {
+        final recipeIdx = e['recipeIdx'] as int? ?? -1;
+        final recipe = recipeIdx >= 0 && recipeIdx < widget.recipes.length
+            ? widget.recipes[recipeIdx]
+            : null;
+        final title = recipe?.title.toLowerCase() ?? '';
+        final user = (e['user'] as String? ?? '').toLowerCase();
+        final q = _query.toLowerCase();
+        return title.contains(q) || user.contains(q);
+      }).toList();
+
+  Future<void> _deleteEntry(String docId) async {
+    await FirebaseService.instance.deleteSaved(docId);
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(Str.entryDeleted)),
     );
   }
 
   void _showEntryOptions(Map<String, dynamic> entry) {
+    final docId = entry['id'] as String? ?? '';
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (_) => Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(Str.options,
-                style: const TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: 16)),
+            Text(Str.options, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 12),
             ListTile(
-              leading: const Icon(Icons.edit_outlined),
-              title: Text(Str.editEntry),
-              onTap: () {
-                Navigator.pop(context);
-                _showEntryForm(existing: entry);
-              },
-            ),
-            ListTile(
               leading: const Icon(Icons.delete_outline, color: Colors.redAccent),
-              title: Text(Str.deleteEntry,
-                  style: const TextStyle(color: Colors.redAccent)),
+              title: Text(Str.deleteEntry, style: const TextStyle(color: Colors.redAccent)),
               onTap: () {
                 Navigator.pop(context);
-                _deleteEntry(entry);
+                _deleteEntry(docId);
               },
             ),
           ],
@@ -84,23 +82,21 @@ class _AdminSavedScreenState extends State<AdminSavedScreen> with LocaleAwareSta
     );
   }
 
-  Future<void> _showEntryForm({Map<String, dynamic>? existing}) async {
-    String selectedUser = existing?['user'] ?? _availableUsers[0];
-    int selectedRecipe = existing?['recipeIdx'] ?? 0;
+  Future<void> _showEntryForm() async {
+    String selectedUser = _availableUsers[0];
+    int selectedRecipe = 0;
 
     final result = await showDialog<bool>(
       context: context,
       builder: (_) => StatefulBuilder(
         builder: (ctx, setDlg) => AlertDialog(
-          title: Text(existing != null ? Str.editEntry : Str.newEntry),
+          title: Text(Str.newEntry),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               DropdownButtonFormField<String>(
                 initialValue: selectedUser,
-                items: _availableUsers
-                    .map((u) => DropdownMenuItem(value: u, child: Text(u)))
-                    .toList(),
+                items: _availableUsers.map((u) => DropdownMenuItem(value: u, child: Text(u))).toList(),
                 onChanged: (v) => setDlg(() => selectedUser = v!),
                 decoration: InputDecoration(labelText: Str.user),
               ),
@@ -108,8 +104,7 @@ class _AdminSavedScreenState extends State<AdminSavedScreen> with LocaleAwareSta
               DropdownButtonFormField<int>(
                 initialValue: selectedRecipe,
                 items: widget.recipes.asMap().entries.map((e) {
-                  return DropdownMenuItem(
-                      value: e.key, child: Text(e.value.title));
+                  return DropdownMenuItem(value: e.key, child: Text(e.value.title));
                 }).toList(),
                 onChanged: (v) => setDlg(() => selectedRecipe = v!),
                 decoration: InputDecoration(labelText: Str.recipe),
@@ -117,30 +112,18 @@ class _AdminSavedScreenState extends State<AdminSavedScreen> with LocaleAwareSta
             ],
           ),
           actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text(Str.cancel)),
-            ElevatedButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: Text(Str.save)),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(Str.cancel)),
+            ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: Text(Str.save)),
           ],
         ),
       ),
     );
 
     if (result != true) return;
-    setState(() {
-      final entry = {
-        'user': selectedUser,
-        'recipeIdx': selectedRecipe,
-        'savedAt': existing?['savedAt'] ?? 'Just now',
-      };
-      if (existing != null) {
-        final idx = _entries.indexOf(existing);
-        if (idx >= 0) _entries[idx] = entry;
-      } else {
-        _entries.insert(0, entry);
-      }
+    await FirebaseService.instance.addSaved({
+      'user': selectedUser,
+      'recipeIdx': selectedRecipe,
+      'savedAt': 'Just now',
     });
   }
 
@@ -150,9 +133,7 @@ class _AdminSavedScreenState extends State<AdminSavedScreen> with LocaleAwareSta
       appBar: AppBar(
         backgroundColor: const Color(0xFF9C27B0),
         foregroundColor: Colors.white,
-        title: Text(Str.savedPlural,
-            style:
-                const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text(Str.savedPlural, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
@@ -160,7 +141,7 @@ class _AdminSavedScreenState extends State<AdminSavedScreen> with LocaleAwareSta
         actions: [
           IconButton(
             icon: const Icon(Icons.add, color: Colors.white),
-            onPressed: () => _showEntryForm(),
+            onPressed: _showEntryForm,
           ),
         ],
         bottom: PreferredSize(
@@ -176,12 +157,8 @@ class _AdminSavedScreenState extends State<AdminSavedScreen> with LocaleAwareSta
                 filled: true,
                 fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                 isDense: true,
-                prefixIcon:
-                    Icon(Icons.search, color: Theme.of(context).colorScheme.outline, size: 20),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide.none,
-                ),
+                prefixIcon: Icon(Icons.search, color: Theme.of(context).colorScheme.outline, size: 20),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
               ),
             ),
           ),
@@ -197,18 +174,17 @@ class _AdminSavedScreenState extends State<AdminSavedScreen> with LocaleAwareSta
               separatorBuilder: (_, __) => const Divider(height: 1),
               itemBuilder: (context, i) {
                 final entry = _filtered[i];
-                final recipe = entry['recipeIdx'] < widget.recipes.length
-                    ? widget.recipes[entry['recipeIdx']]
+                final recipeIdx = entry['recipeIdx'] as int? ?? -1;
+                final recipe = recipeIdx >= 0 && recipeIdx < widget.recipes.length
+                    ? widget.recipes[recipeIdx]
                     : null;
                 return ListTile(
                   leading: const CircleAvatar(
                     backgroundColor: Colors.orange,
-                    child: Icon(Icons.bookmark,
-                        color: Colors.white, size: 18),
+                    child: Icon(Icons.bookmark, color: Colors.white, size: 18),
                   ),
-                  title: Text(Str.recipeTitle(recipe?.title ?? ''),
-                      style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text('${entry['user']} — ${entry['savedAt']}',
+                  title: Text(recipe?.title ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: Text('${entry['user'] ?? ''} — ${entry['savedAt'] ?? ''}',
                       style: const TextStyle(fontSize: 12)),
                   trailing: IconButton(
                     icon: const Icon(Icons.more_vert, size: 20),

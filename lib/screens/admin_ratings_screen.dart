@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/recipe.dart';
+import '../services/firebase_service.dart';
 import '../l10n/strings.dart';
 import '../widgets/locale_aware.dart';
 
@@ -15,30 +17,39 @@ class AdminRatingsScreen extends StatefulWidget {
 class _AdminRatingsScreenState extends State<AdminRatingsScreen> with LocaleAwareState {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
+  List<Map<String, dynamic>> _ratings = [];
+  StreamSubscription? _subscription;
 
-  final List<Map<String, dynamic>> _ratings = [
-    {'user': 'Angel Salinas', 'stars': 4.5, 'recipeIdx': 0},
-    {'user': 'María López', 'stars': 5.0, 'recipeIdx': 3},
-    {'user': 'Carlos Ruiz', 'stars': 3.5, 'recipeIdx': 1},
-  ];
+  final _users = ['Angel Salinas', 'María López', 'Carlos Ruiz'];
 
-  List<Map<String, dynamic>> get _filtered => _ratings.where((r) {
-        final recipe = r['recipeIdx'] < widget.recipes.length
-            ? widget.recipes[r['recipeIdx']]
-            : null;
-        final q = _query.toLowerCase();
-        return r['user'].toLowerCase().contains(q) ||
-            (recipe?.title.toLowerCase().contains(q) ?? false);
-      }).toList();
+  @override
+  void initState() {
+    super.initState();
+    _subscription = FirebaseService.instance.streamRatings().listen((ratings) {
+      if (mounted) setState(() => _ratings = ratings);
+    });
+  }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _subscription?.cancel();
     super.dispose();
   }
 
-  void _deleteRating(int index) {
-    setState(() => _ratings.removeAt(index));
+  List<Map<String, dynamic>> get _filtered => _ratings.where((r) {
+        final recipeIdx = r['recipeIdx'] as int? ?? -1;
+        final recipe = recipeIdx >= 0 && recipeIdx < widget.recipes.length
+            ? widget.recipes[recipeIdx]
+            : null;
+        final q = _query.toLowerCase();
+        return (r['user'] as String? ?? '').toLowerCase().contains(q) ||
+            (recipe?.title.toLowerCase().contains(q) ?? false);
+      }).toList();
+
+  Future<void> _deleteRating(String docId) async {
+    await FirebaseService.instance.deleteRating(docId);
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(Str.ratingDeleted)),
     );
@@ -51,28 +62,25 @@ class _AdminRatingsScreenState extends State<AdminRatingsScreen> with LocaleAwar
     return '$s $stars';
   }
 
-  Future<void> _showRatingForm({int? editIndex}) async {
-    final realIdx = editIndex != null ? _ratings.indexOf(_filtered[editIndex]) : null;
-    final existing = realIdx != null ? _ratings[realIdx] : null;
-    String selectedUser = existing?['user'] ?? 'Angel Salinas';
+  Future<void> _showRatingForm({String? editDocId}) async {
+    final existing = editDocId != null
+        ? _ratings.firstWhere((r) => r['id'] == editDocId, orElse: () => <String, dynamic>{})
+        : null;
+    String selectedUser = existing?['user'] ?? _users[0];
     int selectedRecipe = existing?['recipeIdx'] ?? 0;
-    double stars = existing?['stars'] ?? 3.0;
-    final users = ['Angel Salinas', 'María López', 'Carlos Ruiz'];
+    double stars = (existing?['stars'] as num?)?.toDouble() ?? 3.0;
 
     final saved = await showDialog<bool>(
       context: context,
       builder: (_) => StatefulBuilder(
         builder: (ctx, setDlg) => AlertDialog(
-          title: Text(
-              editIndex != null ? Str.editRating : Str.newRating),
+          title: Text(editDocId != null ? Str.editRating : Str.newRating),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               DropdownButtonFormField<String>(
                 initialValue: selectedUser,
-                items: users
-                    .map((u) => DropdownMenuItem(value: u, child: Text(u)))
-                    .toList(),
+                items: _users.map((u) => DropdownMenuItem(value: u, child: Text(u))).toList(),
                 onChanged: (v) => setDlg(() => selectedUser = v!),
                 decoration: InputDecoration(labelText: Str.user),
               ),
@@ -80,8 +88,7 @@ class _AdminRatingsScreenState extends State<AdminRatingsScreen> with LocaleAwar
               DropdownButtonFormField<int>(
                 initialValue: selectedRecipe,
                 items: widget.recipes.asMap().entries.map((e) {
-                  return DropdownMenuItem(
-                      value: e.key, child: Text(e.value.title));
+                  return DropdownMenuItem(value: e.key, child: Text(e.value.title));
                 }).toList(),
                 onChanged: (v) => setDlg(() => selectedRecipe = v!),
                 decoration: InputDecoration(labelText: Str.recipe),
@@ -91,27 +98,17 @@ class _AdminRatingsScreenState extends State<AdminRatingsScreen> with LocaleAwar
                 alignment: WrapAlignment.center,
                 children: List.generate(5, (i) {
                   return IconButton(
-                    icon: Icon(
-                      i < stars ? Icons.star : Icons.star_border,
-                      color: Colors.amber,
-                      size: 28,
-                    ),
-                    constraints: const BoxConstraints(
-                        minWidth: 36, minHeight: 36),
-                    onPressed: () =>
-                        setDlg(() => stars = (i + 1).toDouble()),
+                    icon: Icon(i < stars ? Icons.star : Icons.star_border, color: Colors.amber, size: 28),
+                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                    onPressed: () => setDlg(() => stars = (i + 1).toDouble()),
                   );
                 }),
               ),
             ],
           ),
           actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text(Str.cancel)),
-            ElevatedButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: Text(Str.save)),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(Str.cancel)),
+            ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: Text(Str.save)),
           ],
         ),
       ),
@@ -119,18 +116,17 @@ class _AdminRatingsScreenState extends State<AdminRatingsScreen> with LocaleAwar
 
     if (saved != true) return;
 
-    setState(() {
-      final entry = {
-        'user': selectedUser,
-        'stars': stars,
-        'recipeIdx': selectedRecipe,
-      };
-      if (realIdx != null) {
-        _ratings[realIdx] = entry;
-      } else {
-        _ratings.insert(0, entry);
-      }
-    });
+    final data = {
+      'user': selectedUser,
+      'stars': stars,
+      'recipeIdx': selectedRecipe,
+    };
+
+    if (editDocId != null) {
+      await FirebaseService.instance.updateRating(editDocId, data);
+    } else {
+      await FirebaseService.instance.addRating(data);
+    }
   }
 
   @override
@@ -140,8 +136,7 @@ class _AdminRatingsScreenState extends State<AdminRatingsScreen> with LocaleAwar
         backgroundColor: const Color(0xFF9C27B0),
         foregroundColor: Colors.white,
         title: Text(Str.ratings,
-            style:
-                const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
@@ -165,12 +160,8 @@ class _AdminRatingsScreenState extends State<AdminRatingsScreen> with LocaleAwar
                 filled: true,
                 fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                 isDense: true,
-                prefixIcon:
-                    Icon(Icons.search, color: Theme.of(context).colorScheme.outline, size: 20),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide.none,
-                ),
+                prefixIcon: Icon(Icons.search, color: Theme.of(context).colorScheme.outline, size: 20),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
               ),
             ),
           ),
@@ -194,24 +185,22 @@ class _AdminRatingsScreenState extends State<AdminRatingsScreen> with LocaleAwar
               separatorBuilder: (_, __) => const SizedBox(height: 8),
               itemBuilder: (context, index) {
                 final entry = _filtered[index];
-                final recipe = entry['recipeIdx'] < widget.recipes.length
-                    ? widget.recipes[entry['recipeIdx']]
+                final recipeIdx = entry['recipeIdx'] as int? ?? -1;
+                final recipe = recipeIdx >= 0 && recipeIdx < widget.recipes.length
+                    ? widget.recipes[recipeIdx]
                     : null;
+                final docId = entry['id'] as String? ?? '';
 
                 return Dismissible(
-                  key: Key('rating_$index'),
+                  key: Key('rating_$docId'),
                   direction: DismissDirection.endToStart,
                   background: Container(
                     alignment: Alignment.centerRight,
                     padding: const EdgeInsets.only(right: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                    decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(12)),
                     child: const Icon(Icons.delete, color: Colors.white),
                   ),
-                    onDismissed: (_) => _deleteRating(
-                        _ratings.indexOf(entry)),
+                  onDismissed: (_) => _deleteRating(docId),
                   child: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
@@ -227,48 +216,32 @@ class _AdminRatingsScreenState extends State<AdminRatingsScreen> with LocaleAwar
                             CircleAvatar(
                               radius: 16,
                               backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                              child: Icon(Icons.person,
-                                  size: 18, color: Theme.of(context).colorScheme.onSurface),
+                              child: Icon(Icons.person, size: 18, color: Theme.of(context).colorScheme.onSurface),
                             ),
                             const SizedBox(width: 8),
                             Expanded(
-                              child: Text(entry['user'],
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14)),
+                              child: Text(entry['user'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                             ),
                             GestureDetector(
-                              onTap: () =>
-                                  _showRatingForm(editIndex: index),
-                              child: Icon(Icons.edit,
-                                  size: 18, color: Theme.of(context).colorScheme.outline),
+                              onTap: () => _showRatingForm(editDocId: docId),
+                              child: Icon(Icons.edit, size: 18, color: Theme.of(context).colorScheme.outline),
                             ),
                             const SizedBox(width: 4),
                             GestureDetector(
-                              onTap: () => _deleteRating(
-                                  _ratings.indexOf(entry)),
-                              child: const Icon(Icons.delete_outline,
-                                  size: 18, color: Colors.redAccent),
+                              onTap: () => _deleteRating(docId),
+                              child: const Icon(Icons.delete_outline, size: 18, color: Colors.redAccent),
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              _starsText(entry['stars']),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                                color: Colors.amber,
-                              ),
+                              _starsText((entry['stars'] as num?)?.toDouble() ?? 0),
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.amber),
                             ),
                           ],
                         ),
                         const SizedBox(height: 8),
                         if (recipe != null)
-                          Text(Str.recipeTitle(recipe.title),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13,
-                                color: Color(0xFF9C27B0),
-                              )),
+                          Text(recipe.title,
+                              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF9C27B0))),
                       ],
                     ),
                   ),

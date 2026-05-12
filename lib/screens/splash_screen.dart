@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/app_widgets.dart';
-import 'welcome_screen.dart';
-import 'login_screen.dart';
+import 'role_choice_screen.dart';
 
 /// First screen — always in Spanish per design.
 class SplashScreen extends StatelessWidget {
@@ -53,50 +52,20 @@ class SplashScreen extends StatelessWidget {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => const WelcomeScreen(),
+                                  builder: (_) => const RoleChoiceScreen(),
                                 ),
                               );
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF1565C0),
+                              backgroundColor: const Color(0xFF9C27B0),
                               foregroundColor: Colors.white,
                               elevation: 0,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(30),
                               ),
                             ),
                             child: const Text(
-                              'Usuario',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 54,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const LoginScreen(isAdmin: true),
-                                ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFD32F2F),
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            child: const Text(
-                              'Administrador',
+                              'Continuar',
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/auth_service.dart';
 import '../l10n/strings.dart';
 import '../widgets/locale_aware.dart';
 import 'recipe_list_screen.dart';
@@ -30,15 +31,27 @@ class _RegisterScreenState extends State<RegisterScreen> with LocaleAwareState {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
 
-    await Future.delayed(const Duration(milliseconds: 500));
+    try {
+      await AuthService.instance.register(
+        _nameController.text.trim(),
+        _emailController.text.trim(),
+        _passwordController.text,
+      );
 
-    if (!mounted) return;
-    setState(() => _isLoading = false);
+      if (!mounted) return;
+      setState(() => _isLoading = false);
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const RecipeListScreen()),
-    );
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const RecipeListScreen()),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${e.toString()}')),
+      );
+    }
   }
 
   @override

@@ -1,8 +1,12 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/recipe.dart';
+import '../services/auth_service.dart';
+import '../services/firebase_service.dart';
 import '../widgets/app_widgets.dart';
 import '../l10n/strings.dart';
 import '../widgets/locale_aware.dart';
+import '../utils/recommendations.dart';
 import 'user_profile_screen.dart';
 import 'recipe_detail_screen.dart';
 import 'splash_screen.dart';
@@ -18,8 +22,33 @@ class _RecipeListScreenState extends State<RecipeListScreen> with LocaleAwareSta
   final TextEditingController _searchController = TextEditingController();
   bool _isGridView = false;
   bool _showFavoritesOnly = false;
+  final List<Recipe> _recipes = [];
 
-  final List<Recipe> _recipes = placeholderRecipes;
+  StreamSubscription? _subscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _subscription = FirebaseService.instance.streamRecipes().listen((recipes) {
+      if (mounted) setState(() => _recipes
+        ..clear()
+        ..addAll(recipes));
+    });
+  }
+
+  Future<void> _refreshRecipes() async {
+    final recipes = await FirebaseService.instance.getRecipes();
+    if (mounted) setState(() => _recipes
+      ..clear()
+      ..addAll(recipes));
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _subscription?.cancel();
+    super.dispose();
+  }
 
   List<Recipe> get _filtered {
     List<Recipe> result = _recipes;
@@ -33,10 +62,9 @@ class _RecipeListScreenState extends State<RecipeListScreen> with LocaleAwareSta
     return result;
   }
 
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
+  List<Recipe> get _recommended {
+    final liked = _recipes.where((r) => r.isLiked).toList();
+    return Recommendations.getRecommendedRecipes(_recipes, liked);
   }
 
   void _confirmLogout() {
@@ -101,7 +129,7 @@ class _RecipeListScreenState extends State<RecipeListScreen> with LocaleAwareSta
           ),
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: () => setState(() {}),
+            onPressed: _refreshRecipes,
           ),
         ],
       ),
@@ -131,11 +159,6 @@ class _RecipeListScreenState extends State<RecipeListScreen> with LocaleAwareSta
                   ),
                 ),
                 IconButton(
-                  icon: Icon(Icons.tune, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
-                  tooltip: Str.filters,
-                  onPressed: () {},
-                ),
-                IconButton(
                   icon: Icon(
                     _showFavoritesOnly ? Icons.favorite : Icons.favorite_border,
                     color: _showFavoritesOnly ? Colors.red : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
@@ -162,11 +185,13 @@ class _RecipeListScreenState extends State<RecipeListScreen> with LocaleAwareSta
                 : _isGridView
                     ? _GridView(
                         recipes: filtered,
+                        recommended: _recommended,
                         onTap: _openDetail,
                         onLike: _toggleLike,
                       )
                     : _ListView(
                         recipes: filtered,
+                        recommended: _recommended,
                         onTap: _openDetail,
                         onLike: _toggleLike,
                       ),
@@ -193,40 +218,64 @@ class _RecipeListScreenState extends State<RecipeListScreen> with LocaleAwareSta
     );
   }
 
-  void _toggleLike(Recipe recipe) {
+  Future<void> _toggleLike(Recipe recipe) async {
+    final user = AuthService.instance.currentUser?.name ?? '';
+    if (user.isEmpty) return;
+    final idx = _recipes.indexWhere((r) => r.id == recipe.id);
+    if (idx < 0) return;
+    final existing = await FirebaseService.instance.getLikedByUserAndRecipe(user, idx);
+    if (existing != null) {
+      await FirebaseService.instance.deleteLiked(existing['id'] as String);
+    } else {
+      await FirebaseService.instance.addLiked({'user': user, 'recipeIdx': idx});
+    }
     setState(() => recipe.isLiked = !recipe.isLiked);
   }
 }
 
 class _ListView extends StatelessWidget {
   final List<Recipe> recipes;
+  final List<Recipe> recommended;
   final void Function(Recipe) onTap;
   final void Function(Recipe) onLike;
 
   const _ListView({
     required this.recipes,
+    required this.recommended,
     required this.onTap,
     required this.onLike,
   });
 
   @override
   Widget build(BuildContext context) {
+    final showRecommended = recommended.isNotEmpty;
     return ListView.separated(
-      itemCount: recipes.length,
-      separatorBuilder: (_, __) => const Divider(height: 1, indent: 12, endIndent: 12),
+      itemCount: recipes.length + (showRecommended ? 1 : 0),
+      separatorBuilder: (_, i) {
+        if (showRecommended && i == 0) return const SizedBox.shrink();
+        return const Divider(height: 1, indent: 12, endIndent: 12);
+      },
       itemBuilder: (_, i) {
-        final r = recipes[i];
+        if (showRecommended && i == 0) {
+          return _RecommendedSection(recipes: recommended, onTap: onTap);
+        }
+        final r = recipes[showRecommended ? i - 1 : i];
         return InkWell(
           onTap: () => onTap(r),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             child: Row(
               children: [
-                RecipeImagePlaceholder(
-                  width: 82,
-                  height: 82,
-                  borderRadius: BorderRadius.circular(10),
-                ),
+                r.imageUrl != null
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Image.network(r.imageUrl!, width: 82, height: 82, fit: BoxFit.cover),
+                      )
+                    : RecipeImagePlaceholder(
+                        width: 82,
+                        height: 82,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(
@@ -234,7 +283,7 @@ class _ListView extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        Str.recipeTitle(r.title),
+                        r.title,
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -272,95 +321,174 @@ class _ListView extends StatelessWidget {
 
 class _GridView extends StatelessWidget {
   final List<Recipe> recipes;
+  final List<Recipe> recommended;
   final void Function(Recipe) onTap;
   final void Function(Recipe) onLike;
 
   const _GridView({
     required this.recipes,
+    required this.recommended,
     required this.onTap,
     required this.onLike,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GridView.builder(
-      padding: const EdgeInsets.all(12),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 0.78,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-      ),
-      itemCount: recipes.length,
-      itemBuilder: (_, i) {
-        final r = recipes[i];
-        return Card(
-          elevation: 2,
-          clipBehavior: Clip.antiAlias,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          child: InkWell(
-            onTap: () => onTap(r),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Container(
-                        color: Theme.of(context).colorScheme.surfaceContainerHigh,
-                        child: Center(
-                          child: Icon(Icons.restaurant, size: 44, color: Theme.of(context).colorScheme.outline),
-                        ),
-                      ),
-                      Positioned(
-                        top: 6,
-                        right: 6,
-                        child: GestureDetector(
-                          onTap: () => onLike(r),
-                          child: Icon(
-                            r.isLiked ? Icons.favorite : Icons.favorite_border,
-                            color: r.isLiked ? Colors.red : Colors.white,
-                            size: 22,
-                            shadows: [
-                              Shadow(color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.26), blurRadius: 4),
+    return CustomScrollView(
+      slivers: [
+        if (recommended.isNotEmpty)
+          SliverToBoxAdapter(
+            child: _RecommendedSection(recipes: recommended, onTap: onTap),
+          ),
+        SliverPadding(
+          padding: const EdgeInsets.all(12),
+          sliver: SliverGrid(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              childAspectRatio: 0.78,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+            ),
+            delegate: SliverChildBuilderDelegate(
+              (_, i) {
+                final r = recipes[i];
+                return Card(
+                  elevation: 2,
+                  clipBehavior: Clip.antiAlias,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  child: InkWell(
+                    onTap: () => onTap(r),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                            r.imageUrl != null
+                                ? Image.network(r.imageUrl!, fit: BoxFit.cover)
+                                : Container(
+                                    color: Theme.of(context).colorScheme.surfaceContainerHigh,
+                                    child: Center(
+                                      child: Icon(Icons.restaurant, size: 44, color: Theme.of(context).colorScheme.outline),
+                                    ),
+                                  ),
+                            Positioned(
+                                top: 6,
+                                right: 6,
+                                child: GestureDetector(
+                                  onTap: () => onLike(r),
+                                  child: Icon(
+                                    r.isLiked ? Icons.favorite : Icons.favorite_border,
+                                    color: r.isLiked ? Colors.red : Colors.white,
+                                    size: 22,
+                                    shadows: [
+                                      Shadow(color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.26), blurRadius: 4),
+                                    ],
+                                  ),
+                                ),
+                              ),
                             ],
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        Str.recipeTitle(r.title),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                r.title,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                r.totalTime,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        r.totalTime,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                );
+              },
+              childCount: recipes.length,
             ),
           ),
-        );
-      },
+        ),
+      ],
+    );
+  }
+}
+
+class _RecommendedSection extends StatelessWidget {
+  final List<Recipe> recipes;
+  final void Function(Recipe) onTap;
+
+  const _RecommendedSection({
+    required this.recipes,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 2, 12, 6),
+          child: Text(
+            Str.recommendedForYou,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: scheme.onSurface.withValues(alpha: 0.6),
+            ),
+          ),
+        ),
+        SizedBox(
+          height: 38,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            itemCount: recipes.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            itemBuilder: (_, i) {
+              final r = recipes[i];
+              return GestureDetector(
+                onTap: () => onTap(r),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: scheme.outline.withValues(alpha: 0.3)),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    r.title,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: scheme.onSurface,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 4),
+      ],
     );
   }
 }

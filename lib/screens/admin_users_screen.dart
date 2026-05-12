@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import '../services/firebase_service.dart';
 import '../l10n/strings.dart';
 import '../widgets/locale_aware.dart';
 
@@ -11,40 +13,29 @@ class AdminUsersScreen extends StatefulWidget {
 
 class _AdminUsersScreenState extends State<AdminUsersScreen> with LocaleAwareState {
   final TextEditingController _searchController = TextEditingController();
-
-  final List<Map<String, dynamic>> _users = [
-    {
-      'name': 'Angel Salinas',
-      'email': 'angel@gmail.com',
-      'role': 'user',
-      'joined': 'Jan 2024',
-      'saved': 3,
-      'liked': 2,
-    },
-    {
-      'name': 'María López',
-      'email': 'maria@gmail.com',
-      'role': 'user',
-      'joined': 'Mar 2024',
-      'saved': 5,
-      'liked': 4,
-    },
-    {
-      'name': 'Carlos Ruiz',
-      'email': 'carlos@gmail.com',
-      'role': 'admin',
-      'joined': 'Dec 2023',
-      'saved': 1,
-      'liked': 0,
-    },
-  ];
-
+  List<Map<String, dynamic>> _users = [];
   String _query = '';
+  StreamSubscription? _subscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _subscription = FirebaseService.instance.streamUsers().listen((users) {
+      if (mounted) setState(() => _users = users);
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _subscription?.cancel();
+    super.dispose();
+  }
 
   List<Map<String, dynamic>> get _filtered => _users
       .where((u) =>
-          u['name'].toLowerCase().contains(_query.toLowerCase()) ||
-          u['email'].toLowerCase().contains(_query.toLowerCase()))
+          (u['name'] as String? ?? '').toLowerCase().contains(_query.toLowerCase()) ||
+          (u['email'] as String? ?? '').toLowerCase().contains(_query.toLowerCase()))
       .toList();
 
   Future<void> _showUserForm({Map<String, dynamic>? existing}) async {
@@ -60,12 +51,8 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> with LocaleAwareSta
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(
-                  controller: nameCtrl,
-                  decoration: InputDecoration(labelText: Str.name)),
-              TextField(
-                  controller: emailCtrl,
-                  decoration: InputDecoration(labelText: Str.email)),
+              TextField(controller: nameCtrl, decoration: InputDecoration(labelText: Str.name)),
+              TextField(controller: emailCtrl, decoration: InputDecoration(labelText: Str.email)),
               DropdownButtonFormField<String>(
                 initialValue: role,
                 items: [
@@ -78,15 +65,13 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> with LocaleAwareSta
             ],
           ),
           actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text(Str.cancel)),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(Str.cancel)),
             ElevatedButton(
                 onPressed: () => Navigator.pop(ctx, {
-                  'name': nameCtrl.text.trim(),
-                  'email': emailCtrl.text.trim(),
-                  'role': role,
-                }),
+                      'name': nameCtrl.text.trim(),
+                      'email': emailCtrl.text.trim(),
+                      'role': role,
+                    }),
                 child: Text(Str.save)),
           ],
         ),
@@ -95,26 +80,16 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> with LocaleAwareSta
 
     if (result == null || result['name']!.isEmpty) return;
 
-    setState(() {
-      if (existing != null) {
-        existing['name'] = result['name'];
-        existing['email'] = result['email'];
-        existing['role'] = result['role'];
-      } else {
-        _users.add({
-          'name': result['name'],
-          'email': result['email'],
-          'role': result['role'],
-          'joined': 'Just now',
-          'saved': 0,
-          'liked': 0,
-        });
-      }
-    });
+    if (existing != null) {
+      await FirebaseService.instance.updateUser(existing['uid'] ?? existing['id'], result);
+    }
   }
 
-  void _deleteUser(Map<String, dynamic> user) {
-    setState(() => _users.remove(user));
+  Future<void> _deleteUser(Map<String, dynamic> user) async {
+    final uid = user['uid'] ?? user['id'];
+    if (uid == null) return;
+    await FirebaseService.instance.deleteUser(uid);
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(Str.deletedUser(user['name']))),
     );
@@ -130,9 +105,8 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> with LocaleAwareSta
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(user['name'],
-                style: const TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: 16)),
+            Text(user['name'] ?? '',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 12),
             ListTile(
               leading: const Icon(Icons.edit_outlined),
@@ -144,21 +118,17 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> with LocaleAwareSta
             ),
             ListTile(
               leading: const Icon(Icons.admin_panel_settings),
-              title: Text(user['role'] == 'admin'
-                  ? Str.removeAdmin
-                  : Str.makeAdmin),
+              title: Text(user['role'] == 'admin' ? Str.removeAdmin : Str.makeAdmin),
               onTap: () {
                 Navigator.pop(context);
-                setState(() {
-                  user['role'] = user['role'] == 'admin' ? 'user' : 'admin';
-                });
+                final uid = user['uid'] ?? user['id'];
+                final newRole = user['role'] == 'admin' ? 'user' : 'admin';
+                FirebaseService.instance.updateUser(uid, {'role': newRole});
               },
             ),
             ListTile(
-              leading:
-                  const Icon(Icons.delete_outline, color: Colors.redAccent),
-              title: Text(Str.deleteUser,
-                  style: const TextStyle(color: Colors.redAccent)),
+              leading: const Icon(Icons.delete_outline, color: Colors.redAccent),
+              title: Text(Str.deleteUser, style: const TextStyle(color: Colors.redAccent)),
               onTap: () {
                 Navigator.pop(context);
                 _deleteUser(user);
@@ -177,8 +147,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> with LocaleAwareSta
         backgroundColor: const Color(0xFF9C27B0),
         foregroundColor: Colors.white,
         title: Text(Str.users,
-            style:
-                const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
@@ -202,12 +171,8 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> with LocaleAwareSta
                 filled: true,
                 fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                 isDense: true,
-                prefixIcon:
-                    Icon(Icons.search, color: Theme.of(context).colorScheme.outline, size: 20),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide.none,
-                ),
+                prefixIcon: Icon(Icons.search, color: Theme.of(context).colorScheme.outline, size: 20),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
               ),
             ),
           ),
@@ -227,52 +192,35 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> with LocaleAwareSta
                   leading: CircleAvatar(
                     backgroundColor: const Color(0xFF9C27B0),
                     child: Text(
-                      (user['name'] as String)[0].toUpperCase(),
+                      ((user['name'] as String?) ?? '?')[0].toUpperCase(),
                       style: const TextStyle(color: Colors.white),
                     ),
                   ),
                   title: Row(
                     children: [
                       Flexible(
-                        child: Text(user['name'],
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold),
+                        child: Text(user['name'] ?? '',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
                             overflow: TextOverflow.ellipsis),
                       ),
                       if (user['role'] == 'admin') ...[
                         const SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
                             color: const Color(0xFF9C27B0),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(Str.admin,
-                              style: const TextStyle(
-                                  color: Colors.white, fontSize: 10)),
+                              style: const TextStyle(color: Colors.white, fontSize: 10)),
                         ),
                       ],
                     ],
                   ),
-                  subtitle: Text(user['email'],
-                      style: const TextStyle(fontSize: 12)),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.bookmark_border,
-                          size: 16, color: Theme.of(context).colorScheme.outline),
-                      Text(' ${user['saved']}  ',
-                          style: const TextStyle(fontSize: 12)),
-                      Icon(Icons.favorite_border,
-                          size: 16, color: Theme.of(context).colorScheme.outline),
-                      Text(' ${user['liked']}',
-                          style: const TextStyle(fontSize: 12)),
-                      IconButton(
-                        icon: const Icon(Icons.more_vert, size: 20),
-                        onPressed: () => _showUserOptions(user),
-                      ),
-                    ],
+                  subtitle: Text(user['email'] ?? '', style: const TextStyle(fontSize: 12)),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.more_vert, size: 20),
+                    onPressed: () => _showUserOptions(user),
                   ),
                 );
               },

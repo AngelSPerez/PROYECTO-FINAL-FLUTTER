@@ -1,5 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import '../models/recipe.dart';
+import '../services/firebase_service.dart';
 import '../widgets/app_widgets.dart';
 import '../l10n/strings.dart';
 import '../widgets/locale_aware.dart';
@@ -17,39 +21,82 @@ class _AdminRecipesScreenState extends State<AdminRecipesScreen> with LocaleAwar
   late List<Recipe> _recipes;
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
+  StreamSubscription? _subscription;
 
   @override
   void initState() {
     super.initState();
     _recipes = List.from(widget.recipes);
+    _subscription = FirebaseService.instance.streamRecipes().listen((recipes) {
+      if (mounted) setState(() {
+        _recipes
+          ..clear()
+          ..addAll(recipes);
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _subscription?.cancel();
+    super.dispose();
   }
 
   List<Recipe> get _filtered => _recipes
       .where((r) => r.title.toLowerCase().contains(_query.toLowerCase()))
       .toList();
 
-  void _deleteRecipe(Recipe recipe) {
-    setState(() => _recipes.remove(recipe));
+  Future<void> _deleteRecipe(Recipe recipe) async {
+    await FirebaseService.instance.deleteRecipe(recipe.id);
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(Str.deletedRecipe(recipe.title))),
     );
   }
 
-  String _nextId() =>
-      (_recipes.map((r) => int.parse(r.id)).reduce((a, b) => a > b ? a : b) + 1)
-          .toString();
+  Future<String> _nextId() => FirebaseService.instance.nextRecipeId();
 
   Future<void> _showRecipeForm({Recipe? existing}) async {
-    final titleCtrl = TextEditingController(text: existing?.title ?? '');
+    final titleEnCtrl = TextEditingController(text: existing?.titleEn ?? '');
+    final titleEsCtrl = TextEditingController(text: existing?.titleEs ?? '');
     final prepCtrl = TextEditingController(text: existing?.prepTime ?? '');
     final cookCtrl = TextEditingController(text: existing?.cookTime ?? '');
     final totalCtrl = TextEditingController(text: existing?.totalTime ?? '');
-    final ingCtrl = TextEditingController(
-        text: existing?.ingredients.join(', ') ?? '');
-    final stepsCtrl = TextEditingController(
-        text: existing?.steps.join('\n') ?? '');
+    final ingEnCtrl = TextEditingController(
+        text: existing?.ingredientsEn.join(', ') ?? '');
+    final ingEsCtrl = TextEditingController(
+        text: existing?.ingredientsEs.join(', ') ?? '');
+    final stepsEnCtrl = TextEditingController(
+        text: existing?.stepsEn.join('\n') ?? '');
+    final stepsEsCtrl = TextEditingController(
+        text: existing?.stepsEs.join('\n') ?? '');
     final ratingCtrl = TextEditingController(
         text: existing?.rating.toString() ?? '4.0');
+    final imageUrlCtrl = TextEditingController(
+        text: existing?.imageUrl ?? '');
+
+    Future<void> pickImage() async {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(source: ImageSource.gallery);
+      if (picked == null) return;
+      try {
+        final ref = FirebaseStorage.instance
+            .ref('recipe_images/${DateTime.now().millisecondsSinceEpoch}.jpg');
+        await ref.putData(await picked.readAsBytes(), SettableMetadata(
+          contentType: 'image/jpeg',
+        ));
+        final url = await ref.getDownloadURL();
+        imageUrlCtrl.text = url;
+        if (mounted) setState(() {});
+      } catch (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to upload image')),
+          );
+        }
+      }
+    }
 
     final saved = await showDialog<bool>(
       context: context,
@@ -59,76 +106,73 @@ class _AdminRecipesScreenState extends State<AdminRecipesScreen> with LocaleAwar
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(
-                  controller: titleCtrl,
-                  decoration: InputDecoration(labelText: Str.title)),
-              TextField(
-                  controller: prepCtrl,
-                  decoration: InputDecoration(labelText: Str.prepTime)),
-              TextField(
-                  controller: cookCtrl,
-                  decoration: InputDecoration(labelText: Str.cookTime)),
-              TextField(
-                  controller: totalCtrl,
-                  decoration: InputDecoration(labelText: Str.totalTime)),
-              TextField(
-                  controller: ingCtrl,
-                  decoration: InputDecoration(
-                      labelText: Str.ingredientsComma)),
-              TextField(
-                  controller: stepsCtrl,
-                  maxLines: 3,
-                  decoration: InputDecoration(
-                      labelText: Str.stepsOnePerLine)),
-              TextField(
-                  controller: ratingCtrl,
-                  keyboardType: TextInputType.number,
-                  decoration:
-                      InputDecoration(labelText: Str.rating)),
+              TextField(controller: titleEnCtrl, decoration: InputDecoration(labelText: 'Title (EN)')),
+              TextField(controller: titleEsCtrl, decoration: InputDecoration(labelText: 'Título (ES)')),
+              TextField(controller: prepCtrl, decoration: InputDecoration(labelText: Str.prepTime)),
+              TextField(controller: cookCtrl, decoration: InputDecoration(labelText: Str.cookTime)),
+              TextField(controller: totalCtrl, decoration: InputDecoration(labelText: Str.totalTime)),
+              TextField(controller: ingEnCtrl, decoration: InputDecoration(labelText: 'Ingredients EN (comma)')),
+              TextField(controller: ingEsCtrl, decoration: InputDecoration(labelText: 'Ingredientes ES (coma)')),
+              TextField(controller: stepsEnCtrl, maxLines: 2, decoration: InputDecoration(labelText: 'Steps EN (one/line)')),
+              TextField(controller: stepsEsCtrl, maxLines: 2, decoration: InputDecoration(labelText: 'Pasos ES (uno/línea)')),
+              TextField(controller: ratingCtrl, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: Str.rating)),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: imageUrlCtrl,
+                      decoration: InputDecoration(
+                        labelText: 'Image URL',
+                        hintText: 'https://...',
+                        isDense: true,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.image_outlined),
+                    tooltip: 'Pick from gallery',
+                    onPressed: pickImage,
+                  ),
+                ],
+              ),
             ],
           ),
         ),
         actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: Text(Str.cancel)),
-          ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: Text(Str.save)),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(Str.cancel)),
+          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: Text(Str.save)),
         ],
       ),
     );
 
     if (saved != true) return;
-    if (titleCtrl.text.trim().isEmpty) return;
+    if (titleEnCtrl.text.trim().isEmpty) return;
 
-    setState(() {
-      final recipe = Recipe(
-        id: existing?.id ?? _nextId(),
-        title: titleCtrl.text.trim(),
-        prepTime: prepCtrl.text.trim(),
-        cookTime: cookCtrl.text.trim(),
-        totalTime: totalCtrl.text.trim(),
-        ingredients: ingCtrl.text
-            .split(',')
-            .map((e) => e.trim())
-            .where((e) => e.isNotEmpty)
-            .toList(),
-        steps: stepsCtrl.text
-            .split('\n')
-            .map((e) => e.trim())
-            .where((e) => e.isNotEmpty)
-            .toList(),
-        rating: double.tryParse(ratingCtrl.text) ?? 4.0,
-      );
+    final id = existing?.id ?? await _nextId();
+    final recipe = Recipe(
+      id: id,
+      titleEn: titleEnCtrl.text.trim(),
+      titleEs: titleEsCtrl.text.trim(),
+      prepTime: prepCtrl.text.trim(),
+      cookTime: cookCtrl.text.trim(),
+      totalTime: totalCtrl.text.trim(),
+      ingredientsEn: ingEnCtrl.text.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList(),
+      ingredientsEs: ingEsCtrl.text.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList(),
+      stepsEn: stepsEnCtrl.text.split('\n').map((e) => e.trim()).where((e) => e.isNotEmpty).toList(),
+      stepsEs: stepsEsCtrl.text.split('\n').map((e) => e.trim()).where((e) => e.isNotEmpty).toList(),
+      rating: double.tryParse(ratingCtrl.text) ?? 4.0,
+      imageUrl: imageUrlCtrl.text.trim().isEmpty
+          ? null
+          : imageUrlCtrl.text.trim(),
+    );
 
-      if (existing != null) {
-        final idx = _recipes.indexOf(existing);
-        if (idx >= 0) _recipes[idx] = recipe;
-      } else {
-        _recipes.add(recipe);
-      }
-    });
+    if (existing != null) {
+      await FirebaseService.instance.updateRecipe(recipe);
+    } else {
+      await FirebaseService.instance.addRecipe(recipe);
+    }
   }
 
   void _showRecipeOptions(Recipe recipe) {
@@ -141,7 +185,7 @@ class _AdminRecipesScreenState extends State<AdminRecipesScreen> with LocaleAwar
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(Str.recipeTitle(recipe.title),
+            Text(recipe.title,
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 12),
@@ -239,7 +283,7 @@ class _AdminRecipesScreenState extends State<AdminRecipesScreen> with LocaleAwar
                             borderRadius: BorderRadius.circular(8),
                           ),
                   ),
-                  title: Text(Str.recipeTitle(recipe.title),
+                  title: Text(recipe.title,
                       style: const TextStyle(fontWeight: FontWeight.bold)),
                   subtitle: Row(
                     children: [

@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:firebase_core/firebase_core.dart' hide FirebaseService;
+import 'firebase_options.dart';
 import 'l10n/app_locale.dart';
 import 'services/preferences_service.dart';
+import 'services/auth_service.dart';
+import 'services/firebase_service.dart';
 import 'screens/splash_screen.dart';
 
 class AppTheme {
@@ -10,9 +15,25 @@ class AppTheme {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    systemNavigationBarColor: Colors.transparent,
+    systemNavigationBarDividerColor: Colors.transparent,
+  ));
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   await PreferencesService.init();
+  await AuthService.instance.init();
   AppLocale.language.value = PreferencesService.getLanguage();
   AppTheme.mode.value = PreferencesService.getThemeMode();
+
+  if (!await AuthService.instance.hasSeeded()) {
+    await AuthService.instance.seedAdmin();
+    await FirebaseService.instance.seedRecipes();
+    await AuthService.instance.markSeeded();
+  }
+
   runApp(const RecipeReciveApp());
 }
 

@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import '../services/firebase_service.dart';
 import '../l10n/strings.dart';
 import '../widgets/locale_aware.dart';
 
@@ -12,60 +14,46 @@ class AdminCommentsScreen extends StatefulWidget {
 class _AdminCommentsScreenState extends State<AdminCommentsScreen> with LocaleAwareState {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
-
-  final List<Map<String, dynamic>> _comments = [
-    {
-      'user': 'Angel Salinas',
-      'avatar': null,
-      'time': '1h',
-      'text':
-          'Preparé este pay de manzana y quedó muy bien, con masa crujiente y relleno suave.',
-      'recipe': 'Apple Pie',
-    },
-    {
-      'user': 'María López',
-      'avatar': null,
-      'time': '3h',
-      'text':
-          'Las galletas quedaron perfectas, muy esponjosas por dentro y crocantes por fuera.',
-      'recipe': 'Cookies',
-    },
-    {
-      'user': 'Carlos Ruiz',
-      'avatar': null,
-      'time': '1d',
-      'text':
-          'El pollo me quedó un poco seco, pero el sabor era buenísimo. La próxima vez lo dejo menos tiempo.',
-      'recipe': 'Chicken',
-    },
-  ];
+  List<Map<String, dynamic>> _comments = [];
+  StreamSubscription? _subscription;
 
   final _availableRecipes = ['Apple Pie', 'Chicken', 'Cheesecake', 'Cookies', 'Wings', 'Pasta', 'Tacos', 'Pancakes'];
   final _availableUsers = ['Angel Salinas', 'María López', 'Carlos Ruiz'];
 
-  List<Map<String, dynamic>> get _filtered => _comments.where((c) {
-        final q = _query.toLowerCase();
-        return c['user'].toLowerCase().contains(q) ||
-            c['recipe'].toLowerCase().contains(q) ||
-            c['text'].toLowerCase().contains(q);
-      }).toList();
+  @override
+  void initState() {
+    super.initState();
+    _subscription = FirebaseService.instance.streamComments().listen((comments) {
+      if (mounted) setState(() => _comments = comments);
+    });
+  }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _subscription?.cancel();
     super.dispose();
   }
 
-  void _deleteComment(int index) {
-    setState(() => _comments.removeAt(index));
+  List<Map<String, dynamic>> get _filtered => _comments.where((c) {
+        final q = _query.toLowerCase();
+        return (c['user'] as String? ?? '').toLowerCase().contains(q) ||
+            (c['recipe'] as String? ?? '').toLowerCase().contains(q) ||
+            (c['text'] as String? ?? '').toLowerCase().contains(q);
+      }).toList();
+
+  Future<void> _deleteComment(String docId) async {
+    await FirebaseService.instance.deleteComment(docId);
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(Str.commentDeleted)),
     );
   }
 
-  Future<void> _showCommentForm({int? editIndex}) async {
-    final realIdx = editIndex != null ? _comments.indexOf(_filtered[editIndex]) : null;
-    final existing = realIdx != null ? _comments[realIdx] : null;
+  Future<void> _showCommentForm({String? editDocId}) async {
+    final existing = editDocId != null
+        ? _comments.firstWhere((c) => c['id'] == editDocId, orElse: () => <String, dynamic>{})
+        : null;
     final textCtrl = TextEditingController(text: existing?['text'] ?? '');
     String selectedUser = existing?['user'] ?? _availableUsers[0];
     String selectedRecipe = existing?['recipe'] ?? _availableRecipes[0];
@@ -74,24 +62,20 @@ class _AdminCommentsScreenState extends State<AdminCommentsScreen> with LocaleAw
       context: context,
       builder: (_) => StatefulBuilder(
         builder: (ctx, setDlg) => AlertDialog(
-          title: Text(editIndex != null ? Str.editComment : Str.newComment),
+          title: Text(editDocId != null ? Str.editComment : Str.newComment),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               DropdownButtonFormField<String>(
                 initialValue: selectedUser,
-                items: _availableUsers
-                    .map((u) => DropdownMenuItem(value: u, child: Text(u)))
-                    .toList(),
+                items: _availableUsers.map((u) => DropdownMenuItem(value: u, child: Text(u))).toList(),
                 onChanged: (v) => setDlg(() => selectedUser = v!),
                 decoration: InputDecoration(labelText: Str.user),
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
                 initialValue: selectedRecipe,
-                items: _availableRecipes
-                    .map((r) => DropdownMenuItem(value: r, child: Text(r)))
-                    .toList(),
+                items: _availableRecipes.map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
                 onChanged: (v) => setDlg(() => selectedRecipe = v!),
                 decoration: InputDecoration(labelText: Str.recipe),
               ),
@@ -99,18 +83,13 @@ class _AdminCommentsScreenState extends State<AdminCommentsScreen> with LocaleAw
               TextField(
                 controller: textCtrl,
                 maxLines: 3,
-                decoration: InputDecoration(
-                    labelText: Str.comment, border: const OutlineInputBorder()),
+                decoration: InputDecoration(labelText: Str.comment, border: const OutlineInputBorder()),
               ),
             ],
           ),
           actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text(Str.cancel)),
-            ElevatedButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: Text(Str.save)),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(Str.cancel)),
+            ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: Text(Str.save)),
           ],
         ),
       ),
@@ -118,19 +97,18 @@ class _AdminCommentsScreenState extends State<AdminCommentsScreen> with LocaleAw
 
     if (saved != true || textCtrl.text.trim().isEmpty) return;
 
-    setState(() {
-      final entry = {
-        'user': selectedUser,
-        'time': editIndex != null ? existing!['time'] : 'Just now',
-        'text': textCtrl.text.trim(),
-        'recipe': selectedRecipe,
-      };
-      if (realIdx != null) {
-        _comments[realIdx] = entry;
-      } else {
-        _comments.insert(0, entry);
-      }
-    });
+    final data = {
+      'user': selectedUser,
+      'time': editDocId != null ? existing!['time'] : 'Just now',
+      'text': textCtrl.text.trim(),
+      'recipe': selectedRecipe,
+    };
+
+    if (editDocId != null) {
+      await FirebaseService.instance.updateComment(editDocId, data);
+    } else {
+      await FirebaseService.instance.addComment(data);
+    }
   }
 
   @override
@@ -140,8 +118,7 @@ class _AdminCommentsScreenState extends State<AdminCommentsScreen> with LocaleAw
         backgroundColor: const Color(0xFF9C27B0),
         foregroundColor: Colors.white,
         title: Text(Str.comments,
-            style:
-                const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
@@ -165,12 +142,8 @@ class _AdminCommentsScreenState extends State<AdminCommentsScreen> with LocaleAw
                 filled: true,
                 fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                 isDense: true,
-                prefixIcon:
-                    Icon(Icons.search, color: Theme.of(context).colorScheme.outline, size: 20),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide.none,
-                ),
+                prefixIcon: Icon(Icons.search, color: Theme.of(context).colorScheme.outline, size: 20),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
               ),
             ),
           ),
@@ -181,8 +154,7 @@ class _AdminCommentsScreenState extends State<AdminCommentsScreen> with LocaleAw
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.chat_bubble_outline,
-                      size: 64, color: Theme.of(context).colorScheme.outline),
+                  Icon(Icons.chat_bubble_outline, size: 64, color: Theme.of(context).colorScheme.outline),
                   const SizedBox(height: 12),
                   Text(Str.noCommentsYet,
                       style: TextStyle(color: Theme.of(context).colorScheme.outline, fontSize: 16)),
@@ -195,19 +167,17 @@ class _AdminCommentsScreenState extends State<AdminCommentsScreen> with LocaleAw
               separatorBuilder: (_, __) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final c = _filtered[index];
+                final docId = c['id'] as String? ?? '';
                 return Dismissible(
-                  key: Key('comment_$index'),
+                  key: Key('comment_$docId'),
                   direction: DismissDirection.endToStart,
                   background: Container(
                     alignment: Alignment.centerRight,
                     padding: const EdgeInsets.only(right: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                    decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(12)),
                     child: const Icon(Icons.delete, color: Colors.white),
                   ),
-                  onDismissed: (_) => _deleteComment(index),
+                  onDismissed: (_) => _deleteComment(docId),
                   child: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
@@ -222,44 +192,30 @@ class _AdminCommentsScreenState extends State<AdminCommentsScreen> with LocaleAw
                             CircleAvatar(
                               radius: 16,
                               backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                              child: Icon(Icons.person,
-                                  size: 18, color: Theme.of(context).colorScheme.onSurface),
+                              child: Icon(Icons.person, size: 18, color: Theme.of(context).colorScheme.onSurface),
                             ),
                             const SizedBox(width: 8),
                             Expanded(
-                              child: Text(c['user'],
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14)),
+                              child: Text(c['user'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                             ),
                             GestureDetector(
-                              onTap: () => _showCommentForm(editIndex: index),
-                              child: Icon(Icons.edit,
-                                  size: 18, color: Theme.of(context).colorScheme.outline),
+                              onTap: () => _showCommentForm(editDocId: docId),
+                              child: Icon(Icons.edit, size: 18, color: Theme.of(context).colorScheme.outline),
                             ),
                             const SizedBox(width: 4),
                             GestureDetector(
-                              onTap: () => _deleteComment(index),
-                              child: const Icon(Icons.delete_outline,
-                                  size: 18, color: Colors.redAccent),
+                              onTap: () => _deleteComment(docId),
+                              child: const Icon(Icons.delete_outline, size: 18, color: Colors.redAccent),
                             ),
                             const SizedBox(width: 8),
-                            Text(c['time'],
-                                style: TextStyle(
-                                    color: Theme.of(context).colorScheme.outline, fontSize: 12)),
+                            Text(c['time'] ?? '', style: TextStyle(color: Theme.of(context).colorScheme.outline, fontSize: 12)),
                           ],
                         ),
                         const SizedBox(height: 8),
-                        Text(c['text'],
-                            style:
-                                const TextStyle(fontSize: 13, height: 1.4)),
+                        Text('${c['text']}', style: const TextStyle(fontSize: 13, height: 1.4)),
                         const SizedBox(height: 6),
-                        Text(c['recipe'],
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 13,
-                              color: Color(0xFF9C27B0),
-                            )),
+                        Text('${c['recipe'] ?? ''}',
+                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF9C27B0))),
                       ],
                     ),
                   ),

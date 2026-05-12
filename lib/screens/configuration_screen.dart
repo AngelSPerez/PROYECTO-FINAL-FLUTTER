@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../main.dart';
+import '../services/auth_service.dart';
 import '../l10n/app_locale.dart';
 import '../l10n/strings.dart';
 import '../widgets/locale_aware.dart';
@@ -12,11 +13,16 @@ class ConfigurationScreen extends StatefulWidget {
 }
 
 class _ConfigurationScreenState extends State<ConfigurationScreen> with LocaleAwareState {
-  String get _language => AppLocale.language.value == 'es' ? Str.spanish : Str.english;
-
-  // ── Placeholder user data ───────────────────────────────────────────
-  // TODO: Pull from FirebaseAuth.instance.currentUser
-  final String _currentEmail = 'angel@gmail.com';
+  String get _language {
+    switch (AppLocale.language.value) {
+      case 'es':
+        return Str.spanish;
+      case 'pt_BR':
+        return Str.portuguese;
+      default:
+        return Str.english;
+    }
+  }
 
   String get _themeValue {
     switch (AppTheme.mode.value) {
@@ -40,7 +46,8 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> with LocaleAw
     }
   }
 
-  // ── Language dialog ────────────────────────────────────────────────────────
+  String get _currentEmail => AuthService.instance.currentUser?.email ?? '';
+
   void _showLanguageDialog() {
     String selected = AppLocale.language.value;
     showDialog(
@@ -55,10 +62,14 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> with LocaleAw
             onChanged: (v) => setDlg(() => selected = v!),
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              children: ['en', 'es'].map((lang) {
+              children: ['en', 'es', 'pt_BR'].map((lang) {
                 return ListTile(
                   leading: Radio<String>(value: lang),
-                  title: Text(lang == 'en' ? Str.english : Str.spanish),
+                  title: Text(lang == 'en'
+                      ? Str.english
+                      : lang == 'es'
+                          ? Str.spanish
+                          : Str.portuguese),
                   onTap: () => setDlg(() => selected = lang),
                   contentPadding: EdgeInsets.zero,
                 );
@@ -79,7 +90,6 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> with LocaleAw
     );
   }
 
-  // ── Theme dialog ───────────────────────────────────────────────────────────
   void _showThemeDialog() {
     String selected = _themeValue;
     showDialog(
@@ -122,7 +132,6 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> with LocaleAw
     );
   }
 
-  // ── Change password dialog (placeholder) ──────────────────────────────────
   void _showChangePasswordDialog() {
     final currentCtrl = TextEditingController();
     final newCtrl = TextEditingController();
@@ -149,12 +158,27 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> with LocaleAw
             child: Text(Str.cancel),
           ),
           TextButton(
-            onPressed: () {
-              // TODO: FirebaseAuth password update
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(Str.passwordUpdated)),
-              );
+            onPressed: () async {
+              if (newCtrl.text != confirmCtrl.text) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Passwords do not match')),
+                );
+                return;
+              }
+              try {
+                await AuthService.instance.changePassword(
+                  currentCtrl.text,
+                  newCtrl.text,
+                );
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(Str.passwordUpdated)),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error: ${e.toString()}')),
+                );
+              }
             },
             child: Text(Str.save,
                 style: const TextStyle(color: Color(0xFF9C27B0))),
@@ -164,22 +188,36 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> with LocaleAw
     );
   }
 
-  // ── Change email dialog (placeholder) ──────────────────────────────────────
   void _showChangeEmailDialog() {
     final emailCtrl = TextEditingController(text: _currentEmail);
+    final passwordCtrl = TextEditingController();
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(Str.changeEmail),
-        content: TextField(
-          controller: emailCtrl,
-          keyboardType: TextInputType.emailAddress,
-          decoration: InputDecoration(
-            labelText: Str.newEmail,
-            border: const OutlineInputBorder(),
-          ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: emailCtrl,
+              keyboardType: TextInputType.emailAddress,
+              decoration: InputDecoration(
+                labelText: Str.newEmail,
+                border: const OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: passwordCtrl,
+              obscureText: true,
+              decoration: InputDecoration(
+                labelText: Str.currentPassword,
+                border: const OutlineInputBorder(),
+              ),
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -187,12 +225,27 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> with LocaleAw
             child: Text(Str.cancel),
           ),
           TextButton(
-            onPressed: () {
-              // TODO: FirebaseAuth email update
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(Str.emailUpdated)),
-              );
+            onPressed: () async {
+              if (passwordCtrl.text.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Password required')),
+                );
+                return;
+              }
+              try {
+                await AuthService.instance.changeEmail(
+                  emailCtrl.text.trim(),
+                  passwordCtrl.text,
+                );
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(Str.emailUpdated)),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error: ${e.toString()}')),
+                );
+              }
             },
             child: Text(Str.save,
                 style: const TextStyle(color: Color(0xFF9C27B0))),
@@ -202,7 +255,6 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> with LocaleAw
     );
   }
 
-  // ── About us dialog ────────────────────────────────────────────────────────
   void _showAboutDialog() {
     showDialog(
       context: context,
@@ -236,7 +288,8 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> with LocaleAw
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: Column(
+      body: SafeArea(
+        child: Column(
         children: [
           _SettingsTile(
             title: Str.language,
@@ -269,12 +322,12 @@ class _ConfigurationScreenState extends State<ConfigurationScreen> with LocaleAw
           ),
           const Divider(height: 1, indent: 16, endIndent: 16),
         ],
+        ),
       ),
     );
   }
 }
 
-// ── Reusable settings list tile ──────────────────────────────────────────────
 class _SettingsTile extends StatelessWidget {
   final String title;
   final String subtitle;
@@ -321,7 +374,6 @@ class _SettingsTile extends StatelessWidget {
   }
 }
 
-// ── Password text field helper ────────────────────────────────────────────────
 class _PassField extends StatefulWidget {
   final TextEditingController controller;
   final String label;

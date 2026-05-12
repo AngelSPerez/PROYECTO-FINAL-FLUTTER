@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1008410208339",
+    "project_id": "reciperecive",
+    "storage_bucket": "reciperecive.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1008410208339:android:0aaa162a84544968f13ea6",
+        "android_client_info": {
+          "package_name": "com.example.recipe_recive"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB4lHZsYb1zjmI1OejT0CA7oQ2VK7WXJlc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

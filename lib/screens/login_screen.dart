@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../models/recipe.dart';
+import '../services/auth_service.dart';
+import '../services/firebase_service.dart';
 import '../l10n/strings.dart';
 import '../widgets/locale_aware.dart';
 import 'recipe_list_screen.dart';
@@ -31,22 +32,46 @@ class _LoginScreenState extends State<LoginScreen> with LocaleAwareState {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
 
-    await Future.delayed(const Duration(milliseconds: 500));
-
-    if (!mounted) return;
-    setState(() => _isLoading = false);
-
-    if (widget.isAdmin) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => AdminPanelScreen(recipes: placeholderRecipes),
-        ),
+    try {
+      final user = await AuthService.instance.login(
+        _emailController.text.trim(),
+        _passwordController.text,
       );
-    } else {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const RecipeListScreen()),
+
+      if (!mounted) return;
+
+      if (widget.isAdmin && user.role != 'admin') {
+        await AuthService.instance.logout();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Access denied. Admin only.')),
+        );
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      final recipes = await FirebaseService.instance.getRecipes();
+
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+
+      if (widget.isAdmin) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => AdminPanelScreen(recipes: recipes),
+          ),
+        );
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const RecipeListScreen()),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${e.toString()}')),
       );
     }
   }

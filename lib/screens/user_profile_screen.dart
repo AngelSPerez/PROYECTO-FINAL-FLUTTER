@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
+import '../services/auth_service.dart';
+import '../services/firebase_service.dart';
 import '../l10n/app_locale.dart';
 import '../l10n/strings.dart';
 import 'splash_screen.dart';
 import 'configuration_screen.dart';
+import 'user_items_screen.dart';
 
 class UserProfileScreen extends StatelessWidget {
   const UserProfileScreen({super.key});
 
-  static const String _userName = 'Angel Salinas';
-
   @override
   Widget build(BuildContext context) {
+    final user = AuthService.instance.currentUser;
+
     return ValueListenableBuilder<String>(
       valueListenable: AppLocale.language,
       builder: (_, __, ___) => Scaffold(
@@ -48,37 +51,61 @@ class UserProfileScreen extends StatelessWidget {
                 const SizedBox(height: 14),
 
                 Text(
-                  _userName,
+                  user?.name ?? 'User',
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
                     color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
+                if (user != null)
+                  Text(
+                    user.email,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Theme.of(context).colorScheme.outline,
+                    ),
+                  ),
             const SizedBox(height: 4),
             const Divider(),
 
             _ProfileItem(
               icon: Icons.bookmark_border,
               label: Str.saved,
-              onTap: () {},
+              onTap: () async {
+                final recipes = await FirebaseService.instance.getRecipes();
+                if (!context.mounted) return;
+                Navigator.push(context, MaterialPageRoute(builder: (_) => UserSavedScreen(recipes: recipes)));
+              },
             ),
             _ProfileItem(
               icon: Icons.favorite,
               iconColor: Colors.red,
               label: Str.liked,
-              onTap: () {},
+              onTap: () async {
+                final recipes = await FirebaseService.instance.getRecipes();
+                if (!context.mounted) return;
+                Navigator.push(context, MaterialPageRoute(builder: (_) => UserLikedScreen(recipes: recipes)));
+              },
             ),
             _ProfileItem(
               icon: Icons.chat_bubble_outline,
               label: Str.commented,
-              onTap: () {},
+              onTap: () async {
+                final recipes = await FirebaseService.instance.getRecipes();
+                if (!context.mounted) return;
+                Navigator.push(context, MaterialPageRoute(builder: (_) => UserCommentsScreen(recipes: recipes)));
+              },
             ),
             _ProfileItem(
               icon: Icons.star,
               iconColor: Colors.amber,
               label: Str.rates,
-              onTap: () {},
+              onTap: () async {
+                final recipes = await FirebaseService.instance.getRecipes();
+                if (!context.mounted) return;
+                Navigator.push(context, MaterialPageRoute(builder: (_) => UserRatingsScreen(recipes: recipes)));
+              },
             ),
             _ProfileItem(
               icon: Icons.settings_outlined,
@@ -140,6 +167,7 @@ class UserProfileScreen extends StatelessWidget {
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
+              AuthService.instance.logout();
               Navigator.of(context).pushAndRemoveUntil(
                 MaterialPageRoute(builder: (_) => const SplashScreen()),
                 (_) => false,
