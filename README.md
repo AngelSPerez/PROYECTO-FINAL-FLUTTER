@@ -1,5 +1,7 @@
 # RecipeRecive
 
+## Para esta aplicacion se uso Firebase, Flutter, Claude IA, VS Code y OpenCode
+
 Libro de recetas digital para cocina casera.
 
 ## Admin
